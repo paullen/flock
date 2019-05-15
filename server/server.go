@@ -1,12 +1,18 @@
 package server
 
 import (
+	"encoding/gob"
 	"github.com/elgris/sqrl"
 	"github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 )
+
+func init() {
+	gob.Register(&time.Time{})
+}
 
 // Logger is the interface of the Error Logger, Most loggers satisfy the interface Printf including the standard library logger
 type Logger interface {
@@ -32,6 +38,10 @@ var _ pb.FlockServer = (*Server)(nil)
 func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 	var next pb.FlockRequest
 	for {
+		if err := ch.RecvMsg(&next); err != nil {
+			return err
+		}
+
 		switch v := next.Value.(type) {
 		case *pb.FlockRequest_Ping:
 			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Pong{}}); err != nil {

@@ -2,11 +2,17 @@ package client
 
 import (
 	"context"
+	"encoding/gob"
 	"github.com/srikrsna/flock/protos"
+	"time"
 )
 
 type Logger interface {
 	Printf(string, ...interface{})
+}
+
+func init() {
+	gob.Register(&time.Time{})
 }
 
 type Client struct {

@@ -1,8 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/gob"
 	"errors"
 	"github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
@@ -10,7 +11,7 @@ import (
 
 func handleBatch(ctx context.Context, db DB, tables map[string]flock.Table, req *pb.BatchInsertRequest) (*pb.BatchInsertResponse, error) {
 	var rows []map[string]interface{}
-	if err := json.Unmarshal(req.GetData(), &rows); err != nil {
+	if err := gob.NewDecoder(bytes.NewReader(req.GetData())).Decode(&rows); err != nil {
 		return nil, err
 	}
 

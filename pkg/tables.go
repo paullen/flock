@@ -3,8 +3,9 @@ package flock
 import "reflect"
 
 type Table struct {
-	Name string
-	Keys map[string]Column
+	Name    string
+	Keys    map[string]Column
+	Ordered []string
 }
 
 type Column struct {
@@ -25,6 +26,7 @@ func BuildTables(flock *Flock) map[string]Table {
 		t.Name = e.Name
 
 		t.Keys = make(map[string]Column, len(e.Fields))
+		t.Ordered = make([]string, 0, len(e.Fields))
 
 		for _, field := range e.Fields {
 			c := Column{Value: field.Value, Functions: make([]Func, 0, len(field.Functions))}
@@ -43,6 +45,7 @@ func BuildTables(flock *Flock) map[string]Table {
 			}
 
 			t.Keys[field.Key] = c
+			t.Ordered = append(t.Ordered, field.Key)
 		}
 
 		res[e.Name] = t

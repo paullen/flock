@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-var funcMap map[string]reflect.Value
+var funcMap = map[string]reflect.Value{}
 
 type FuncMap map[string]interface{}
 
@@ -13,8 +13,8 @@ var (
 	errorType = reflect.TypeOf((*error)(nil)).Elem()
 )
 
-func RegisterFunc(funcMap FuncMap) {
-	for name, v := range funcMap {
+func RegisterFunc(fm FuncMap) {
+	for name, v := range fm {
 		rv := reflect.ValueOf(v)
 		if rv.Kind() != reflect.Func {
 			panic("value for " + name + " not a function")
