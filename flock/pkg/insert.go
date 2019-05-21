@@ -5,24 +5,25 @@ import (
 	"fmt"
 	"errors"
 	"reflect"
-	//"time"
-
+	"time"
+	"database/sql"
 	"github.com/elgris/sqrl"
 )
 
 var sqlLimit int = 1000
 
-func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string) error {
-	return insertBulk(ctx, db, rows, table, tableName, funcMap)
+func InsertBulk(ctx context.Context, tx *sql.Tx, rows []map[string]interface{}, table Table, tableName string) error {
+	return insertBulk(ctx, tx, rows, table, tableName, funcMap)
 }
 
-func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value) error {
-	//start := time.Now()
-	batchedQuery := ""
-	batchedArgs := make([]interface{}, 0)
+func insertBulk(ctx context.Context, tx *sql.Tx, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value) error {
+	start := time.Now()
 	totalRows := len(rows)
 	currentRow := 0
 	for {
+
+		count := 0
+
 		inst := BuildInsertStatement(table, tableName, sqrl.Dollar)
 
 		for _, row := range rows[currentRow:] {
@@ -32,8 +33,8 @@ func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 			}
 
 			inst = inst.Values(data...)
-			currentRow += 1
-			if currentRow >= sqlLimit {
+
+			if count++; count == sqlLimit {
 				break
 			}
 		}
@@ -43,20 +44,21 @@ func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 			return err
 		}
 
-		batchedQuery = fmt.Sprintf("%s%s;", batchedQuery, query)
-		batchedArgs = append(batchedArgs, args...)
-		
-		if currentRow >= totalRows {
+		fmt.Println(query,"\n",args)
+		v, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+		fmt.Println(v)
+
+		if currentRow += count; currentRow >= totalRows {
 			break
 		}
 	}
-	//fmt.Println(time.Since(start))
-	fmt.Println(batchedQuery,"\n",batchedArgs)
-	v, err := db.ExecContext(ctx, batchedQuery, batchedArgs...)
-	if err != nil {
+	fmt.Println(time.Since(start))
+	if err := tx.Commit(); err != nil {
 		return err
 	}
-	fmt.Println(v)
 	return nil
 }
 

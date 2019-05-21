@@ -5,3 +5,4 @@ congestion control
 Pass url(connection string) to make it generic -- DONE
 Parameterisation for user no.
 mutation test
+accept plugin for functions

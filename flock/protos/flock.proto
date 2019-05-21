@@ -27,9 +27,10 @@ message Pong {
 }
 
 message BatchInsertRequest {
-    bytes data = 1;
-    string table = 2;
-    string table_name = 3;
+    int32 offset = 1;
+    bytes data = 2;
+    string table = 3;
+    string table_name = 4;
 }
 
 message BatchInsertResponse {
