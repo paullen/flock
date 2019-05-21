@@ -1,0 +1,22 @@
+&flock.Flock{
+	Entries: []*flock.Entry{
+		&flock.Entry{
+			Name: "Random",
+			Query: "SELECT * FROM Random",
+			Fields: []*flock.Field{
+				&flock.Field{
+					Key: "First",
+					Value: "one",
+				},
+				&flock.Field{
+					Key: "Second",
+					Value: "two",
+				},
+				&flock.Field{
+					Key: "Third",
+					Value: "three",
+				},
+			},
+		},
+	},
+}

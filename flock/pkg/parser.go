@@ -1,8 +1,9 @@
 package flock
 
 import (
-	"github.com/alecthomas/participle"
 	"io"
+
+	"github.com/alecthomas/participle"
 )
 
 type Flock struct {
@@ -11,7 +12,8 @@ type Flock struct {
 
 type Entry struct {
 	Name   string   `@(String|Ident|RawString) "{"`
-	Fields []*Field `{ @@ } "}"`
+	Query  string   `@RawString`
+	Fields []*Field `"{" { @@ } "}" "}"`
 }
 
 type Field struct {

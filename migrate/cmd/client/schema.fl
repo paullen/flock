@@ -1,0 +1,26 @@
+reviews {
+    `SELECT Rid as 'ID',
+           AppointyID       as 'BusinessID',
+           OrderId          as 'OrderID',
+           UserId           as 'UserID',
+           FeedbackRating   as 'FeedbackRating',
+           Comment          as 'Comment',           
+           feedbackDate     as 'FeedbackDate',
+           adminReply       as 'AdminReply',
+           Promote_Facebook as 'PromoteFacebook',
+           AppointmentID
+FROM Feedbacks WHERE AppointyID = $1
+ORDER BY Rid desc;`
+    {
+        id               = ID | ToGuid "Reviews"
+        business_id      = BusinessID | ToGuid "Business"
+        order_id         = OrderID | ToGuid "Orders"
+        user_id          = UserID | ToGuid "Users"
+        feedback_rating  = FeedbackRating | Nil 100
+        comment          = Comment | Nil ""
+        feedback_date    = FeedbackDate | Nil "2018-03-26 12:07:53.687000"
+        admin_reply      = AdminReply | Nil ""
+        promote_facebook = PromoteFacebook
+        appointment_id   = AppointmentID | Nil ""
+    }
+}

@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"database/sql"
 	"errors"
 	"github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
 )
+
 
 func handleBatch(ctx context.Context, db DB, tables map[string]flock.Table, req *pb.BatchInsertRequest) (*pb.BatchInsertResponse, error) {
 	var rows []map[string]interface{}
@@ -19,10 +21,12 @@ func handleBatch(ctx context.Context, db DB, tables map[string]flock.Table, req 
 	if !ok {
 		return nil, errors.New("table not configured")
 	}
-
-	if err := flock.InsertBulk(ctx, db, rows, table, req.GetTableName()); err != nil {
+	s := &sql.DB{}
+	tx, _ := s.BeginTx(nil, nil)
+	if err := flock.InsertBulk(ctx, tx, rows, table, req.GetTableName()); err != nil {
 		return nil, err
 	}
+	tx.Commit()
 
 	return &pb.BatchInsertResponse{Success: true}, nil
 }

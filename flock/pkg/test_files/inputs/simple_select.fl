@@ -1,0 +1,9 @@
+Users {
+    `SAMPLE ho = 1 b = " dd" QUERY`
+    {
+        ID = ID | ToGuid "UserPrefix"
+        Name = Name
+        Phone = Phone | Decrypt | Encrypt
+        Password = Password | Decrypt | Hash
+    }
+}

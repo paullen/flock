@@ -3,12 +3,14 @@ package flock_test
 import (
 	"bytes"
 	"flag"
-	"github.com/alecthomas/repr"
-	"github.com/sergi/go-diff/diffmatchpatch"
-	"github.com/srikrsna/flock/pkg"
 	"io/ioutil"
 	"os"
+	//"fmt"
 	"testing"
+
+	"github.com/alecthomas/repr"
+	"github.com/sergi/go-diff/diffmatchpatch"
+	flock "github.com/srikrsna/flock/pkg"
 )
 
 var replace = flag.Bool("replace", false, "Replace flag replaces the output files instead of comparing them")
@@ -28,7 +30,7 @@ func TestParseSchema(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"simple_select.fl",
+			"test.fl",
 			false,
 		},
 	}
@@ -45,6 +47,7 @@ func TestParseSchema(t *testing.T) {
 				t.Errorf("ParseSchema() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
+			//fmt.Println(flock.BuildTables(fl))
 			if *replace {
 				f, err := os.Create(outPath + tt.name)
 				if err != nil {

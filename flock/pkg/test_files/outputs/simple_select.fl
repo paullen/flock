@@ -2,53 +2,7 @@
 	Entries: []*flock.Entry{
 		&flock.Entry{
 			Name: "Users",
-			Fields: []*flock.Field{
-				&flock.Field{
-					Key: "ID",
-					Value: "ID",
-					Functions: []*flock.FieldFunc{
-						&flock.FieldFunc{
-							Name: "ToGuid",
-							Parameters: []*flock.FuncParameter{
-								&flock.FuncParameter{
-									String: &"UserPrefix",
-								},
-							},
-						},
-					},
-				},
-				&flock.Field{
-					Key: "Name",
-					Value: "Name",
-				},
-				&flock.Field{
-					Key: "Phone",
-					Value: "Phone",
-					Functions: []*flock.FieldFunc{
-						&flock.FieldFunc{
-							Name: "Decrypt",
-						},
-						&flock.FieldFunc{
-							Name: "Encrypt",
-						},
-					},
-				},
-				&flock.Field{
-					Key: "Password",
-					Value: "Password",
-					Functions: []*flock.FieldFunc{
-						&flock.FieldFunc{
-							Name: "Decrypt",
-						},
-						&flock.FieldFunc{
-							Name: "Hash",
-						},
-					},
-				},
-			},
-		},
-		&flock.Entry{
-			Name: "Appointments",
+			Query: "SAMPLE ho = 1 b = \" dd\" QUERY",
 			Fields: []*flock.Field{
 				&flock.Field{
 					Key: "ID",

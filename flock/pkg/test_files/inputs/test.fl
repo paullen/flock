@@ -1,0 +1,8 @@
+Random {
+    `SELECT * FROM Random`
+    {
+        First = one
+        Second = two
+        Third = three
+    }
+}
