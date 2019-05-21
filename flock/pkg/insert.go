@@ -3,39 +3,60 @@ package flock
 import (
 	"context"
 	"fmt"
-	"github.com/elgris/sqrl"
+	"errors"
 	"reflect"
-	"time"
+	//"time"
+
+	"github.com/elgris/sqrl"
 )
+
+var sqlLimit int = 1000
 
 func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string) error {
 	return insertBulk(ctx, db, rows, table, tableName, funcMap)
 }
 
 func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value) error {
-	start := time.Now()
-	inst := BuildInsertStatement(table, tableName, sqrl.Dollar)
+	//start := time.Now()
+	batchedQuery := ""
+	batchedArgs := make([]interface{}, 0)
+	totalRows := len(rows)
+	currentRow := 0
+	for {
+		inst := BuildInsertStatement(table, tableName, sqrl.Dollar)
 
-	for _, row := range rows {
-		data, err := CalculateValuesOfRow(row, table, funcMap)
+		for _, row := range rows[currentRow:] {
+			data, err := CalculateValuesOfRow(row, table, funcMap)
+			if err != nil {
+				return err
+			}
+
+			inst = inst.Values(data...)
+			currentRow += 1
+			if currentRow >= sqlLimit {
+				break
+			}
+		}
+
+		query, args, err := inst.ToSql()
 		if err != nil {
 			return err
 		}
 
-		inst = inst.Values(data...)
+		batchedQuery = fmt.Sprintf("%s%s;", batchedQuery, query)
+		batchedArgs = append(batchedArgs, args...)
+		
+		if currentRow >= totalRows {
+			break
+		}
 	}
-
-	query, args, err := inst.ToSql()
+	//fmt.Println(time.Since(start))
+	fmt.Println(batchedQuery,"\n",batchedArgs)
+	v, err := db.ExecContext(ctx, batchedQuery, batchedArgs...)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(time.Since(start))
-
-	if _, err := db.ExecContext(ctx, query, args...); err != nil {
-		return err
-	}
-
+	fmt.Println(v)
 	return nil
 }
 
@@ -94,4 +115,17 @@ func BuildSingleInsertQuery(table Table, tableName string, format sqrl.Placehold
 		ToSql()
 
 	return query, err
+}
+
+func SetLimit(in int) (error) {
+	if in >= 0 {
+		sqlLimit = in
+	} else {
+		return errors.New("Limit needs to be an integer greater than 0.")
+	}
+	return nil
+}
+
+func GetLimit() (int) {
+	return sqlLimit
 }

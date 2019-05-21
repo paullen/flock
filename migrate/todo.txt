@@ -1,0 +1,7 @@
+transaction limit for user account data transfer
+batching -grpc
+         -sql  -- DONE
+congestion control
+Pass url(connection string) to make it generic -- DONE
+Parameterisation for user no.
+mutation test
