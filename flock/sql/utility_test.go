@@ -3,6 +3,9 @@ package flock_test
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"bytes"
+	"encoding/gob"
 	"testing"
 	"context"
 
@@ -39,7 +42,11 @@ func TestGetData(t *testing.T) {
 	data, err := flockSQL.GetData(context.Background(), db, fl.Entries[0].Query)
 
 	fmt.Println("Fetched Data-----------------------------")
-	fmt.Println(data)
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
+		t.Errorf("Gob Encoding failed")
+	}
+	fmt.Println(reflect.TypeOf(buf.Bytes()[0]))
 	fmt.Println("-----------------------------------------")
 	//t.Logf(data)
 

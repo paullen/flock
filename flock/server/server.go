@@ -2,7 +2,8 @@ package server
 
 import (
 	"encoding/gob"
-	"github.com/elgris/sqrl"
+	"database/sql"
+	//"github.com/elgris/sqrl"
 	"github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
 	"google.golang.org/grpc/codes"
@@ -20,13 +21,13 @@ type Logger interface {
 }
 
 // DB ...
-type DB interface {
-	sqrl.ExecerContext
-}
+// type DB interface {
+// 	sqrl.ExecerContext
+// }
 
 // Server ....
 type Server struct {
-	DB     DB
+	DB     *sql.DB
 	Logger Logger
 	Tables map[string]flock.Table
 }

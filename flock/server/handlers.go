@@ -11,7 +11,7 @@ import (
 )
 
 
-func handleBatch(ctx context.Context, db DB, tables map[string]flock.Table, req *pb.BatchInsertRequest) (*pb.BatchInsertResponse, error) {
+func handleBatch(ctx context.Context, db *sql.DB, tables map[string]flock.Table, req *pb.BatchInsertRequest) (*pb.BatchInsertResponse, error) {
 	var rows []map[string]interface{}
 	if err := gob.NewDecoder(bytes.NewReader(req.GetData())).Decode(&rows); err != nil {
 		return nil, err
@@ -21,12 +21,16 @@ func handleBatch(ctx context.Context, db DB, tables map[string]flock.Table, req 
 	if !ok {
 		return nil, errors.New("table not configured")
 	}
-	s := &sql.DB{}
-	tx, _ := s.BeginTx(nil, nil)
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 	if err := flock.InsertBulk(ctx, tx, rows, table, req.GetTableName()); err != nil {
 		return nil, err
 	}
-	tx.Commit()
+	//tx.Commit()
 
 	return &pb.BatchInsertResponse{Success: true}, nil
 }

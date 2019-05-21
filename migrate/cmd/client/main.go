@@ -33,6 +33,8 @@ var path = flag.String("r", "", "Path")
 var databaseServer = flag.String("ds", "", "Database Server")
 var schemaPath = flag.String("s", "", "path to your schema file")
 
+var LIMIT = 240000                 //Gob data limit in bytes
+
 //var dbPath = flag.String("d", "", "path to your config file")
 
 func main() {
@@ -110,6 +112,8 @@ func runClient(db *sql.DB) error {
 	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
 		return err
 	}
+
+	//complete := buf.Bytes()
 
 	if err := fcli.Send(&pb.FlockRequest{
 		Value: &pb.FlockRequest_Batch{
