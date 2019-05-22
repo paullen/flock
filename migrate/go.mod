@@ -19,4 +19,4 @@ require (
 	google.golang.org/grpc v1.15.0
 )
 
-replace github.com/srikrsna/flock => ../../flock-master/flock-master
+replace github.com/srikrsna/flock => ../flock

@@ -33,7 +33,7 @@ var path = flag.String("r", "", "Path")
 var databaseServer = flag.String("ds", "", "Database Server")
 var schemaPath = flag.String("s", "", "path to your schema file")
 
-var LIMIT = 240000                 //Gob data limit in bytes
+var limit = 60000                 //Gob data limit in bytes
 
 //var dbPath = flag.String("d", "", "path to your config file")
 
@@ -113,17 +113,28 @@ func runClient(db *sql.DB) error {
 		return err
 	}
 
-	//complete := buf.Bytes()
+	complete := buf.Bytes()
 
-	if err := fcli.Send(&pb.FlockRequest{
-		Value: &pb.FlockRequest_Batch{
-			Batch: &pb.BatchInsertRequest{
-				Table: fl.Entries[0].Name,
-				Data:  buf.Bytes(),
+	startChunk := 0             //Pointer to beginning of the current chunk
+	lenChunk := limit           //Length of the chunk
+	offset := false             //Check for the last chunk
+
+	for !offset {
+		if startChunk + lenChunk >= len(complete) {
+			lenChunk = len(complete) - startChunk
+			offset = true
+		}
+		if err := fcli.Send(&pb.FlockRequest{
+			Value: &pb.FlockRequest_Batch{
+					Offset: offset,
+					Batch: &pb.BatchInsertRequest{
+					Table: fl.Entries[0].Name,
+					Data:  complete[startChunk:(startChunk + lenChunk)],
+				},
 			},
-		},
-	}); err != nil {
-		return err
+		}); err != nil {
+			return err
+		}
 	}
 
 	res, err := fcli.Recv()
