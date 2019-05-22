@@ -27,7 +27,7 @@ message Pong {
 }
 
 message BatchInsertRequest {
-    int32 offset = 1;
+    bool offset = 1;
     bytes data = 2;
     string table = 3;
     string table_name = 4;
