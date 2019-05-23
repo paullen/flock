@@ -6,62 +6,68 @@ import (
 	"errors"
 	"reflect"
 	"time"
-	"database/sql"
+	//"database/sql"
 	"github.com/elgris/sqrl"
 )
 
-var sqlLimit int = 1000
+var sqlLimit = 1000
 
-func InsertBulk(ctx context.Context, tx *sql.Tx, rows []map[string]interface{}, table Table, tableName string) error {
-	return insertBulk(ctx, tx, rows, table, tableName, funcMap)
-}
-
-func insertBulk(ctx context.Context, tx *sql.Tx, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value) error {
-	start := time.Now()
-	totalRows := len(rows)
-	currentRow := 0
+//InsertBulk ...
+func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string) error {
+	startChunk := 0
+	endChunk := sqlLimit
 	for {
-
-		count := 0
-
-		inst := BuildInsertStatement(table, tableName, sqrl.Dollar)
-
-		for _, row := range rows[currentRow:] {
-			data, err := CalculateValuesOfRow(row, table, funcMap)
-			if err != nil {
-				return err
-			}
-
-			inst = inst.Values(data...)
-
-			if count++; count == sqlLimit {
+		if endChunk > len(rows) {
+			if startChunk < len(rows) {
+				endChunk = len(rows)
+			} else {
 				break
 			}
 		}
-
-		query, args, err := inst.ToSql()
-		if err != nil {
+		if err := insertBulk(ctx, db, rows[startChunk:endChunk], table, tableName, funcMap); err != nil {
 			return err
 		}
-
-		fmt.Println(query,"\n",args)
-		v, err := tx.ExecContext(ctx, query, args...)
-		if err != nil {
-			return err
-		}
-		fmt.Println(v)
-
-		if currentRow += count; currentRow >= totalRows {
-			break
-		}
-	}
-	fmt.Println(time.Since(start))
-	if err := tx.Commit(); err != nil {
-		return err
+		startChunk = endChunk
+		endChunk += sqlLimit
 	}
 	return nil
 }
 
+func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value) error {
+
+	start := time.Now()
+	inst := BuildInsertStatement(table, tableName, sqrl.Dollar)
+	
+	// TODO : Parameterize Placeholder format
+
+	for _, row := range rows {
+		data, err := CalculateValuesOfRow(row, table, funcMap)
+		if err != nil {
+			return err
+		}
+
+		inst = inst.Values(data...)
+	}
+
+	query, args, err := inst.ToSql()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(query,"\n",args)
+
+	v, err := db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	fmt.Println(v)
+
+	fmt.Println(time.Since(start))
+
+	return nil
+}
+
+//CalculateValuesOfRow ...
 func CalculateValuesOfRow(row map[string]interface{}, table Table, funcMap map[string]reflect.Value) ([]interface{}, error) {
 	data := make([]interface{}, 0, len(row))
 
@@ -98,6 +104,7 @@ func CalculateValuesOfRow(row map[string]interface{}, table Table, funcMap map[s
 	return data, nil
 }
 
+//BuildInsertStatement ...
 func BuildInsertStatement(table Table, tableName string, format sqrl.PlaceholderFormat) *sqrl.InsertBuilder {
 	cols := make([]string, 0, len(table.Keys))
 	for _, key := range table.Ordered {
@@ -111,6 +118,7 @@ func BuildInsertStatement(table Table, tableName string, format sqrl.Placeholder
 	return sqrl.Insert(tableName).PlaceholderFormat(format).Columns(cols...).Suffix("ON CONFLICT DO NOTHING")
 }
 
+//BuildSingleInsertQuery ...
 func BuildSingleInsertQuery(table Table, tableName string, format sqrl.PlaceholderFormat) (string, error) {
 	query, _, err := BuildInsertStatement(table, tableName, format).
 		Values(make([]interface{}, len(table.Keys))).
@@ -119,15 +127,17 @@ func BuildSingleInsertQuery(table Table, tableName string, format sqrl.Placehold
 	return query, err
 }
 
+//SetLimit ...
 func SetLimit(in int) (error) {
 	if in >= 0 {
 		sqlLimit = in
 	} else {
-		return errors.New("Limit needs to be an integer greater than 0.")
+		return errors.New("limit needs to be an integer greater than 0")
 	}
 	return nil
 }
 
+//GetLimit ...
 func GetLimit() (int) {
 	return sqlLimit
 }

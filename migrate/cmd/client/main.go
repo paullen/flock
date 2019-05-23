@@ -113,28 +113,39 @@ func runClient(db *sql.DB) error {
 		return err
 	}
 
-	complete := buf.Bytes()
+	if err := fcli.Send(&pb.FlockRequest{
+		Value: &pb.FlockRequest_Batch{
+				&pb.Batch_Request {
+					Table: nil,      //FILL
+					Table_name: nil, //FILL
+				},
+			},
+		}); err != nil {
+		return err
+	}
 
-	startChunk := 0             //Pointer to beginning of the current chunk
-	lenChunk := limit           //Length of the chunk
-	offset := false             //Check for the last chunk
+	complete := buf.Bytes()
+	startChunk := 0
+	lenChunk := limit
+	offset := false
 
 	for !offset {
 		if startChunk + lenChunk >= len(complete) {
 			lenChunk = len(complete) - startChunk
 			offset = true
 		}
+
 		if err := fcli.Send(&pb.FlockRequest{
 			Value: &pb.FlockRequest_Batch{
-					Offset: offset,
-					Batch: &pb.BatchInsertRequest{
-					Table: fl.Entries[0].Name,
-					Data:  complete[startChunk:(startChunk + lenChunk)],
+					&pb.Batch_Chunk {
+						Offset: offset,
+						Data: data[startChunk:startChunk + lenChunk],
+					},
 				},
-			},
-		}); err != nil {
+			}); err != nil {
 			return err
 		}
+		startChunk += lenChunk
 	}
 
 	res, err := fcli.Recv()
