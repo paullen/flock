@@ -115,9 +115,14 @@ func runClient(db *sql.DB) error {
 
 	if err := fcli.Send(&pb.FlockRequest{
 		Value: &pb.FlockRequest_Batch{
-				&pb.Batch_Request {
-					Table: nil,      //FILL
-					Table_name: nil, //FILL
+				Batch: &pb.Batch{
+					Value: &pb.Batch_Head {
+						Head: &pb.BatchInsertHead {
+							Table: "",      //TODO: FILL
+							TableName: "", //TODO: FILL
+							Chunks: 0,       //TODO: FILL
+							},
+						},
 				},
 			},
 		}); err != nil {
@@ -137,15 +142,30 @@ func runClient(db *sql.DB) error {
 
 		if err := fcli.Send(&pb.FlockRequest{
 			Value: &pb.FlockRequest_Batch{
-					&pb.Batch_Chunk {
-						Offset: offset,
-						Data: data[startChunk:startChunk + lenChunk],
+					Batch: &pb.Batch {
+						Value: &pb.Batch_Chunk {
+							Chunk: &pb.DataStream {
+								Data: complete[startChunk:startChunk + lenChunk],
+							},
+						},
 					},
 				},
 			}); err != nil {
 			return err
 		}
 		startChunk += lenChunk
+	}
+
+	if err := fcli.Send(&pb.FlockRequest{
+		Value: &pb.FlockRequest_Batch{
+			Batch: &pb.Batch {
+					Value: &pb.Batch_Tail{
+						Tail: &pb.BatchInsertTail{},
+					},
+				},
+			},
+		}); err != nil {
+		return err
 	}
 
 	res, err := fcli.Recv()
