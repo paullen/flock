@@ -37,11 +37,11 @@ message Batch {
 message BatchInsertHead {
     string table = 1;
     string tableName = 2;
-    int64 chunks = 3;
+    int32 chunks = 3;
 }
 
 message DataStream {
-    int64 index = 1;
+    int32 index = 1;
     bytes data = 2;
 }
 

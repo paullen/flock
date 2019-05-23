@@ -1,6 +1,8 @@
 package server
 
 import (
+	"sort"
+	"time"
 	"errors"
 	"encoding/gob"
 	"database/sql"
@@ -9,7 +11,6 @@ import (
 	pb "github.com/srikrsna/flock/protos"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
 )
 
 func init() {
@@ -40,8 +41,11 @@ var _ pb.FlockServer = (*Server)(nil)
 func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 	var next pb.FlockRequest
 	var nextRequest *pb.BatchInsertHead
-	var data = make([]byte, 0)
-	streaming := false
+	var receivedChunks = make([]*pb.DataStream, 0)
+	var chunks int
+	var streaming = false
+	var endStream = false
+
 	for {
 		if err := ch.RecvMsg(&next); err != nil {
 			return err
@@ -65,25 +69,19 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 					case *pb.Batch_Head:
 						if streaming {
 							s.Logger.Printf("Error: Data streaming in progress. Can't handle new request.")
-							return errors.New("Unresolved data stream")
+							return errors.New("unresolved data stream")
 						}
 						nextRequest = batch.Head
+						chunks = int(batch.Head.Chunks) 
+						// TODO : Resolve Overflow
 						streaming = true
 					case *pb.Batch_Chunk:
-						data = append(data, batch.Chunk.GetData()...)
-						res, err := handleBatch(ch.Context(), s.DB, s.Tables, nextRequest, data)
-						if err != nil {
-							s.Logger.Printf("unable to handle batch insert request: %v", err)
-							return err
-						}
-						if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: res}}); err != nil {
-							s.Logger.Printf("unable to send batch insert response: %v", err)
-							return err
+						receivedChunks = append(receivedChunks, batch.Chunk)
+						if len(receivedChunks) == chunks && endStream {
+							streaming = false
 						}
 					case *pb.Batch_Tail:
-						data = data[:0]
-						nextRequest = nil
-						streaming = false
+						endStream = true
 					default:
 						s.Logger.Printf("might be a version mis match unknown message type received: %T", v.Batch.Value)
 						return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", v.Batch.Value)
@@ -92,5 +90,27 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 				s.Logger.Printf("might be a version mis match unknown message type received: %T", next.Value)
 				return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", next.Value)
 		}
+
+		if !streaming && endStream {
+			sort.SliceStable(receivedChunks, func(i, j int) bool {
+				return receivedChunks[i].Index < receivedChunks[j].Index
+			})
+			var data = make([]byte, 0)
+			for _, v := range receivedChunks {
+				data = append(data, v.GetData()...)
+			}
+			res, err := handleBatch(ch.Context(), s.DB, s.Tables, nextRequest, data)
+			if err != nil {
+				s.Logger.Printf("unable to handle batch insert request: %v", err)
+				return err
+			}
+			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: res}}); err != nil {
+				s.Logger.Printf("unable to send batch insert response: %v", err)
+				return err
+			}
+			nextRequest = nil
+			endStream = false
+		}
 	}
 }
+
