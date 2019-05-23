@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"strconv"
 	"database/sql"
 	"encoding/gob"
 	"flag"
@@ -11,6 +10,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -33,7 +33,8 @@ var path = flag.String("r", "", "Path")
 var databaseServer = flag.String("ds", "", "Database Server")
 var schemaPath = flag.String("s", "", "path to your schema file")
 
-var limit = 60000                 //Gob data limit in bytes
+var gobLimit = 60000 //Gob data limit in bytes
+var rowLimit = 20    //Number of rows that will be sent at a time
 
 //var dbPath = flag.String("d", "", "path to your config file")
 
@@ -95,88 +96,111 @@ func runClient(db *sql.DB) error {
 	defer f.Close()
 
 	//Get User Specified Query
-
 	fl, err := flock.ParseSchema(f)
 	if err != nil {
 		return err
 	}
 
-	// TODO : Iterate over all the tables
-
-	data, err := flockSQL.GetData(context.Background(), db, fl.Entries[0].Query)
-	if err != nil {
-		return err
-	}
-
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
-		return err
-	}
-
-	if err := fcli.Send(&pb.FlockRequest{
-		Value: &pb.FlockRequest_Batch{
-				Batch: &pb.Batch{
-					Value: &pb.Batch_Head {
-						Head: &pb.BatchInsertHead {
-							Table: "",      //TODO: FILL
-							TableName: "", 	//TODO: FILL
-							Chunks: 0,      //TODO: FILL
-							},
-						},
-				},
-			},
-		}); err != nil {
-		return err
-	}
-
-	complete := buf.Bytes()
-	startChunk := 0
-	lenChunk := limit
-	offset := false
-
-	for !offset {
-		if startChunk + lenChunk >= len(complete) {
-			lenChunk = len(complete) - startChunk
-			offset = true
+	//Iterating over all the tables
+	for _, v := range fl.Entries {
+		data, err := flockSQL.GetData(context.Background(), db, v.Query)
+		if err != nil {
+			return err
 		}
 
-		if err := fcli.Send(&pb.FlockRequest{
-			Value: &pb.FlockRequest_Batch{
-					Batch: &pb.Batch {
-						Value: &pb.Batch_Chunk {
-							Chunk: &pb.DataStream {
-								Data: complete[startChunk:startChunk + lenChunk],
+		startRow := 0
+		rowChunks := len(data) / rowLimit
+		if len(data)%rowLimit > 0 {
+			rowChunks++
+		}
+		//Iterating over all row chunks
+		for i := 0; i < rowChunks; i++ {
+			lenRow := rowLimit
+			if startRow+lenRow > len(data) {
+				lenRow = len(data) - startRow
+			}
+			var buf bytes.Buffer
+			if err := gob.NewEncoder(&buf).Encode(data[startRow:(startRow + lenRow)]); err != nil {
+				return err
+			}
+			complete := buf.Bytes()
+			startChunk := 0
+			offset := false
+			chunks := int64(len(complete) / gobLimit)
+			if len(complete)%gobLimit > 0 {
+				chunks++
+			}
+			//Sending the head of a data stream
+			if err := fcli.Send(&pb.FlockRequest{
+				Value: &pb.FlockRequest_Batch{
+					Batch: &pb.Batch{
+						Value: &pb.Batch_Head{
+							Head: &pb.BatchInsertHead{
+								TableName: v.Name,
+								Chunks:    chunks,
 							},
 						},
 					},
 				},
 			}); err != nil {
-			return err
-		}
-		startChunk += lenChunk
-	}
+				return err
+			}
 
-	if err := fcli.Send(&pb.FlockRequest{
-		Value: &pb.FlockRequest_Batch{
-			Batch: &pb.Batch {
-					Value: &pb.Batch_Tail{
-						Tail: &pb.BatchInsertTail{},
+			//Sending chunks of data stream
+			for !offset {
+				lenChunk := gobLimit
+				if startChunk+lenChunk >= len(complete) {
+					lenChunk = len(complete) - startChunk
+					offset = true
+				}
+
+				if err := fcli.Send(&pb.FlockRequest{
+					Value: &pb.FlockRequest_Batch{
+						Batch: &pb.Batch{
+							Value: &pb.Batch_Chunk{
+								Chunk: &pb.DataStream{
+									Data: complete[startChunk:(startChunk + lenChunk)],
+								},
+							},
+						},
+					},
+				}); err != nil {
+					return err
+				}
+				startChunk += lenChunk
+			}
+
+			//Sending the tail of a data stream
+			if err := fcli.Send(&pb.FlockRequest{
+				Value: &pb.FlockRequest_Batch{
+					Batch: &pb.Batch{
+						Value: &pb.Batch_Tail{
+							Tail: &pb.BatchInsertTail{},
+						},
 					},
 				},
-			},
-		}); err != nil {
+			}); err != nil {
+				return err
+			}
+
+			res, err := fcli.Recv()
+			if err != nil {
+				return err
+			}
+
+			log.Println(time.Since(start))
+			log.Println(res)
+
+			startRow += lenRow
+		}
+	}
+	if err = fcli.Send(&pb.FlockRequest{Value: &pb.FlockRequest_End{}}); err != nil {
 		return err
 	}
-
 	res, err := fcli.Recv()
 	if err != nil {
 		return err
 	}
-
-	log.Println(time.Since(start))
-
 	log.Println(res)
-
 	return nil
 }
-

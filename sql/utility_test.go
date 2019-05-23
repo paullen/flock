@@ -1,13 +1,12 @@
 package flock_test
 
 import (
+	"bytes"
+	"context"
+	"encoding/gob"
 	"fmt"
 	"os"
-	//"reflect"
-	"bytes"
-	"encoding/gob"
 	"testing"
-	"context"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	flock "github.com/srikrsna/flock/pkg"

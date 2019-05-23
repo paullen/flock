@@ -2,11 +2,11 @@ package flock
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
-	//"database/sql"
+
 	"github.com/elgris/sqrl"
 )
 
@@ -16,7 +16,11 @@ var sqlLimit = 1000
 func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string) error {
 	startChunk := 0
 	endChunk := sqlLimit
-	for {
+	inserts := len(rows) / sqlLimit
+	if len(rows)%sqlLimit > 0 {
+		inserts++
+	}
+	for i := 0; i < inserts; i++ {
 		if endChunk > len(rows) {
 			if startChunk < len(rows) {
 				endChunk = len(rows)
@@ -37,7 +41,7 @@ func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 
 	start := time.Now()
 	inst := BuildInsertStatement(table, tableName, sqrl.Dollar)
-	
+
 	// TODO : Parameterize Placeholder format
 
 	for _, row := range rows {
@@ -54,7 +58,7 @@ func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 		return err
 	}
 
-	fmt.Println(query,"\n",args)
+	fmt.Println(query, "\n", args)
 
 	v, err := db.ExecContext(ctx, query, args...)
 	if err != nil {
@@ -111,9 +115,9 @@ func BuildInsertStatement(table Table, tableName string, format sqrl.Placeholder
 		cols = append(cols, key)
 	}
 
-	if tableName == "" {
-		tableName = table.Name
-	}
+	// if tableName == "" {
+	// 	tableName = table.Name
+	// }
 
 	return sqrl.Insert(tableName).PlaceholderFormat(format).Columns(cols...).Suffix("ON CONFLICT DO NOTHING")
 }
@@ -128,7 +132,7 @@ func BuildSingleInsertQuery(table Table, tableName string, format sqrl.Placehold
 }
 
 //SetLimit ...
-func SetLimit(in int) (error) {
+func SetLimit(in int) error {
 	if in >= 0 {
 		sqlLimit = in
 	} else {
@@ -138,6 +142,6 @@ func SetLimit(in int) (error) {
 }
 
 //GetLimit ...
-func GetLimit() (int) {
+func GetLimit() int {
 	return sqlLimit
 }
