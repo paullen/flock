@@ -9,7 +9,7 @@ service Flock {
 message FlockRequest {
     oneof value {
         Ping ping = 1;
-        BatchInsertRequest batch = 2;
+        Batch batch = 2;
     }
 }
 
@@ -26,11 +26,26 @@ message Ping {
 message Pong {
 }
 
-message BatchInsertRequest {
-    bool offset = 1;
+message Batch {
+    oneof value {
+        BatchInsertHead head = 1;
+        DataStream chunk = 2;
+        BatchInsertTail tail = 3;
+    }
+}
+
+message BatchInsertHead {
+    string table = 1;
+    string tableName = 2;
+    int64 chunks = 3;
+}
+
+message DataStream {
+    int64 index = 1;
     bytes data = 2;
-    string table = 3;
-    string table_name = 4;
+}
+
+message BatchInsertTail {
 }
 
 message BatchInsertResponse {

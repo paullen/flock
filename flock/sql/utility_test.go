@@ -3,7 +3,7 @@ package flock_test
 import (
 	"fmt"
 	"os"
-	"reflect"
+	//"reflect"
 	"bytes"
 	"encoding/gob"
 	"testing"
@@ -46,7 +46,7 @@ func TestGetData(t *testing.T) {
 	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
 		t.Errorf("Gob Encoding failed")
 	}
-	fmt.Println(reflect.TypeOf(buf.Bytes()[0]))
+	fmt.Println(buf.Bytes())
 	fmt.Println("-----------------------------------------")
 	//t.Logf(data)
 

@@ -49,7 +49,7 @@ func TestInsert(t * testing.T) {
 		mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(3,1))
 		mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(4,1))
 
-		mock.ExpectCommit()
+		//mock.ExpectCommit()
 		
 		flock.SetLimit(1)
 		
@@ -72,7 +72,7 @@ func TestInsert(t * testing.T) {
 		mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(2,2))
 		mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(4,2))
 	
-		mock.ExpectCommit()
+		//mock.ExpectCommit()
 		
 		flock.SetLimit(2)
 		
@@ -96,7 +96,7 @@ func TestInsert(t * testing.T) {
 		mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(3,3))
 		mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(4,1))
 
-		mock.ExpectCommit()
+		//mock.ExpectCommit()
 		
 		flock.SetLimit(3)
 		
@@ -120,7 +120,7 @@ func TestInsert(t * testing.T) {
 		mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(4,4))
 		//mock.ExpectExec("INSERT INTO ").WillReturnError(sqlmock.NewErrorResult(errors.New("yo")))
 	
-		mock.ExpectCommit()
+		//mock.ExpectCommit()
 		
 		flock.SetLimit(4)
 		

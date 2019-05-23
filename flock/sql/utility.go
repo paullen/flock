@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-//Return database connection when passed the connection string and database
+//ConnectDB -  Return database connection interface when passed the connection string and database
 func ConnectDB(u *url.URL, databaseSrv string) (*sql.DB, error) {
 
 	db, err := sql.Open(databaseSrv, u.String())
@@ -21,7 +21,7 @@ func ConnectDB(u *url.URL, databaseSrv string) (*sql.DB, error) {
 	return db, nil
 }
 
-//Perform select statements
+//GetData  - Returns select query results
 func GetData(ctx context.Context, db *sql.DB, query string) ([]map[string]interface{}, error) {
 	rows, err := db.Query(query)
 	if err != nil {

@@ -1,8 +1,36 @@
-transaction limit for user account data transfer
-batching -grpc
+Transaction limit for user account data transfer
+
+Batching -grpc
          -sql  -- DONE
-congestion control
+
+Congestion control
+
 Pass url(connection string) to make it generic -- DONE
-Parameterisation for user no.
-mutation test
-accept plugin for functions
+
+Parameterisation for user id
+
+Generalization for databases - Placeholder parameter
+
+Mutation test
+
+Accept plugin for functions
+
+
+
+/////////////////////////
+
+single message
+    or
+head message and data stream
+
+////////////////////////
+
+client limit as receive window
+
+////////////////////////
+
+cyclic import - plugin functions
+
+////////////////////////
+
+why isn't it batching
