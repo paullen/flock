@@ -10,6 +10,7 @@ message FlockRequest {
     oneof value {
         Ping ping = 1;
         Batch batch = 2;
+        EndStream end = 3;
     }
 }
 
@@ -34,14 +35,16 @@ message Batch {
     }
 }
 
+message EndStream {
+}
+
 message BatchInsertHead {
-    string table = 1;
     string tableName = 2;
-    int32 chunks = 3;
+    int64 chunks = 3;
 }
 
 message DataStream {
-    int32 index = 1;
+    int64 index = 1;
     bytes data = 2;
 }
 
