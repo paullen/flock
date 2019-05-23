@@ -119,8 +119,8 @@ func runClient(db *sql.DB) error {
 					Value: &pb.Batch_Head {
 						Head: &pb.BatchInsertHead {
 							Table: "",      //TODO: FILL
-							TableName: "", //TODO: FILL
-							Chunks: 0,       //TODO: FILL
+							TableName: "", 	//TODO: FILL
+							Chunks: 0,      //TODO: FILL
 							},
 						},
 				},
