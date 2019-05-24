@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -34,12 +35,12 @@ var databaseServer = flag.String("ds", "", "Database Server")
 var schemaPath = flag.String("s", "", "path to your schema file")
 
 var gobLimit = 60000 // Gob data limit in bytes
-var rowLimit = 20    // Number of rows that will be sent at a time
+var rowLimit = 100   // Number of rows that will be sent at a time
 
 func main() {
 	log.SetFlags(0)
 	flag.Parse()
-	queryPlaceholder = os.Argv[1:0]
+	// queryPlaceholder := os.Args[1:]
 	port, err := strconv.Atoi(*portString)
 	if err != nil {
 		log.Fatalln(err)
@@ -101,7 +102,16 @@ func runClient(db *sql.DB) error {
 
 	// Iterating over all the tables
 	for _, v := range fl.Entries {
-		data, err := flockSQL.GetData(context.Background(), db, v.Query)
+		r := regexp.MustCompile(`~\[([a-zA-Z]+)\]~`)
+		params := r.FindAllStringSubmatch(v.Query, -1)
+		// TODO : Check if parameter count match number of values given
+		query := v.Query
+		for i, v := range params {
+			temp := regexp.MustCompile(`~\[` + v[1] + `\]~`)
+			query = temp.ReplaceAllString(query, os.Args[i+1]) // TODO : Fill parameters from UI
+		}
+
+		data, err := flockSQL.GetData(context.Background(), db, query)
 		if err != nil {
 			return err
 		}

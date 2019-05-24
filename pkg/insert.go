@@ -13,7 +13,7 @@ import (
 var sqlLimit = 1000
 
 //InsertBulk ...
-func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string) error {
+func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, format sqrl.PlaceholderFormat) error {
 	startChunk := 0
 	endChunk := sqlLimit
 	inserts := len(rows) / sqlLimit
@@ -28,7 +28,7 @@ func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 				break
 			}
 		}
-		if err := insertBulk(ctx, db, rows[startChunk:endChunk], table, tableName, funcMap); err != nil {
+		if err := insertBulk(ctx, db, rows[startChunk:endChunk], table, tableName, funcMap, format); err != nil {
 			return err
 		}
 		startChunk = endChunk
@@ -37,10 +37,10 @@ func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 	return nil
 }
 
-func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value) error {
+func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value, format sqrl.PlaceholderFormat) error {
 
 	start := time.Now()
-	inst := BuildInsertStatement(table, tableName, sqrl.Dollar)
+	inst := BuildInsertStatement(table, tableName, format)
 
 	// TODO : Parameterize Placeholder format
 
