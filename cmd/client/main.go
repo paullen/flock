@@ -33,15 +33,13 @@ var path = flag.String("r", "", "Path")
 var databaseServer = flag.String("ds", "", "Database Server")
 var schemaPath = flag.String("s", "", "path to your schema file")
 
-var gobLimit = 60000 //Gob data limit in bytes
-var rowLimit = 20    //Number of rows that will be sent at a time
-
-//var dbPath = flag.String("d", "", "path to your config file")
+var gobLimit = 60000 // Gob data limit in bytes
+var rowLimit = 20    // Number of rows that will be sent at a time
 
 func main() {
 	log.SetFlags(0)
 	flag.Parse()
-
+	queryPlaceholder = os.Argv[1:0]
 	port, err := strconv.Atoi(*portString)
 	if err != nil {
 		log.Fatalln(err)
@@ -95,13 +93,13 @@ func runClient(db *sql.DB) error {
 	}
 	defer f.Close()
 
-	//Get User Specified Query
+	// Get User Specified Query
 	fl, err := flock.ParseSchema(f)
 	if err != nil {
 		return err
 	}
 
-	//Iterating over all the tables
+	// Iterating over all the tables
 	for _, v := range fl.Entries {
 		data, err := flockSQL.GetData(context.Background(), db, v.Query)
 		if err != nil {
@@ -113,7 +111,7 @@ func runClient(db *sql.DB) error {
 		if len(data)%rowLimit > 0 {
 			rowChunks++
 		}
-		//Iterating over all row chunks
+		// Iterating over all row chunks
 		for i := 0; i < rowChunks; i++ {
 			lenRow := rowLimit
 			if startRow+lenRow > len(data) {
@@ -130,7 +128,7 @@ func runClient(db *sql.DB) error {
 			if len(complete)%gobLimit > 0 {
 				chunks++
 			}
-			//Sending the head of a data stream
+			// Sending the head of a data stream
 			if err := fcli.Send(&pb.FlockRequest{
 				Value: &pb.FlockRequest_Batch{
 					Batch: &pb.Batch{
@@ -146,7 +144,7 @@ func runClient(db *sql.DB) error {
 				return err
 			}
 
-			//Sending chunks of data stream
+			// Sending chunks of data stream
 			for !offset {
 				lenChunk := gobLimit
 				if startChunk+lenChunk >= len(complete) {
@@ -170,7 +168,7 @@ func runClient(db *sql.DB) error {
 				startChunk += lenChunk
 			}
 
-			//Sending the tail of a data stream
+			// Sending the tail of a data stream
 			if err := fcli.Send(&pb.FlockRequest{
 				Value: &pb.FlockRequest_Batch{
 					Batch: &pb.Batch{

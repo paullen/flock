@@ -2,7 +2,7 @@
 	Entries: []*flock.Entry{
 		&flock.Entry{
 			Name: "Random",
-			Query: "SELECT * FROM Random",
+			Query: "SELECT * FROM Random WHERE First=~[]~, Third = ~[]~",
 			Fields: []*flock.Field{
 				&flock.Field{
 					Key: "First",

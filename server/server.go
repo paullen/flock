@@ -6,9 +6,8 @@ import (
 	"encoding/gob"
 	"errors"
 	"sort"
+	"sync"
 	"time"
-
-	//"github.com/elgris/sqrl"
 
 	"github.com/elgris/sqrl"
 	flock "github.com/srikrsna/flock/pkg"
@@ -26,10 +25,17 @@ type Logger interface {
 	Printf(string, ...interface{})
 }
 
-//DB ...
+// DB ...
 type DB interface {
 	sqrl.ExecerContext
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+}
+
+var chunkMap = &sync.Map{}
+
+type errorHandle struct {
+	err  error
+	lock *sync.Mutex
 }
 
 // Server ....
@@ -45,14 +51,9 @@ var _ pb.FlockServer = (*Server)(nil)
 // Flock ...
 func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 	var next pb.FlockRequest
-	var nextRequest *pb.BatchInsertHead
-	var receivedChunks = make([]*pb.DataStream, 0)
-	var chunks int64
-	var streaming = false
-	var endStream = false
-
-	//Implementation for a single user
-	//To iterate over a database wrap the below code in another for loop
+	var inError = errorHandle{nil, &sync.Mutex{}}
+	// Implementation for a single user
+	// To iterate over a database wrap the below code in another for loop
 	tx, err := s.DB.BeginTx(ch.Context(), nil)
 	if err != nil {
 		s.Logger.Printf("unable to create transaction: %v", err)
@@ -61,6 +62,13 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 	defer tx.Rollback()
 
 	for {
+		inError.lock.Lock()
+		if inError.err != nil {
+			s.Logger.Printf("Failed to process stream")
+			return inError.err
+		}
+		inError.lock.Unlock()
+
 		if err := ch.RecvMsg(&next); err != nil {
 			return err
 		}
@@ -77,29 +85,65 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			}
 			switch batch := v.Batch.Value.(type) {
 			case *pb.Batch_Head:
-				if streaming {
-					s.Logger.Printf("Error: Data streaming in progress. Can't handle new request.")
-					return errors.New("unresolved data stream")
-				}
-				nextRequest = batch.Head
-				chunks = int64(batch.Head.Chunks)
-				streaming = true
+				var tempChannel = make(chan *pb.DataStream, batch.Head.Chunks)
+
+				chunkMap.Store(v.Batch.BatchId, tempChannel)
+
+				// Passing channel to ease access from locks and nextRequest to not store it
+				go func(channel chan *pb.DataStream, nextRequest *pb.BatchInsertHead, inerror *errorHandle) {
+					var receivedChunks = make([]*pb.DataStream, 0)
+					for v := range channel {
+						receivedChunks = append(receivedChunks, v)
+					}
+					sort.SliceStable(receivedChunks, func(i, j int) bool {
+						return receivedChunks[i].Index < receivedChunks[j].Index
+					})
+					var data = make([]byte, 0)
+					for _, v := range receivedChunks {
+						data = append(data, v.GetData()...)
+					}
+					res, err := handleBatch(ch.Context(), tx, s.Tables, nextRequest, data)
+					if err != nil {
+						s.Logger.Printf("unable to handle batch insert request: %v", err)
+						inerror.lock.Lock()
+						inerror.err = err
+						inerror.lock.Unlock()
+						return
+					}
+					if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: res}}); err != nil {
+						s.Logger.Printf("unable to send batch insert response: %v", err)
+						inerror.lock.Lock()
+						inerror.err = err
+						inerror.lock.Unlock()
+						return
+					}
+				}(tempChannel, batch.Head, &inError)
 			case *pb.Batch_Chunk:
-				receivedChunks = append(receivedChunks, batch.Chunk)
-				if int64(len(receivedChunks)) == chunks && endStream {
-					streaming = false
+
+				value, ok := chunkMap.Load(v.Batch.BatchId)
+
+				if !ok {
+					s.Logger.Printf("unidentified stream. Please send BatchInserHead before beginning a stream")
+					return errors.New("stream not found")
 				}
+				value.(chan *pb.DataStream) <- batch.Chunk
 			case *pb.Batch_Tail:
-				endStream = true
+
+				value, ok := chunkMap.Load(v.Batch.BatchId)
+
+				if !ok {
+					s.Logger.Printf("unidentified stream. Please send BatchInserHead before beginning a stream")
+					return errors.New("stream not found")
+				}
+				close(value.(chan *pb.DataStream))
+
+				chunkMap.Delete(v.Batch.BatchId)
+
 			default:
 				s.Logger.Printf("might be a version mis match unknown message type received: %T", v.Batch.Value)
 				return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", v.Batch.Value)
 			}
 		case *pb.FlockRequest_End:
-			if streaming || endStream {
-				s.Logger.Printf("End signal sent mid-stream")
-				return errors.New("End request could not be processed")
-			}
 			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: &pb.BatchInsertResponse{Success: true}}}); err != nil {
 				s.Logger.Printf("unable to send echo message: %T", err)
 				return err
@@ -112,29 +156,6 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 		default:
 			s.Logger.Printf("might be a version mis match unknown message type received: %T", next.Value)
 			return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", next.Value)
-		}
-
-		if !streaming && endStream {
-			sort.SliceStable(receivedChunks, func(i, j int) bool {
-				return receivedChunks[i].Index < receivedChunks[j].Index
-			})
-			var data = make([]byte, 0)
-			for _, v := range receivedChunks {
-				data = append(data, v.GetData()...)
-			}
-			res, err := handleBatch(ch.Context(), tx, s.Tables, nextRequest, data)
-			if err != nil {
-				s.Logger.Printf("unable to handle batch insert request: %v", err)
-				return err
-			}
-			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: res}}); err != nil {
-				s.Logger.Printf("unable to send batch insert response: %v", err)
-				return err
-			}
-			chunks = 0
-			receivedChunks = receivedChunks[:0]
-			nextRequest = nil
-			endStream = false
 		}
 	}
 }

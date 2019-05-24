@@ -1,5 +1,5 @@
 Random {
-    `SELECT * FROM Random`
+    `SELECT * FROM Random WHERE First=~[]~, Third = ~[]~`
     {
         First = one
         Second = two
