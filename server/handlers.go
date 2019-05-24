@@ -11,7 +11,7 @@ import (
 	pb "github.com/srikrsna/flock/protos"
 )
 
-func handleBatch(ctx context.Context, db sqrl.ExecerContext, tables map[string]flock.Table, req *pb.BatchInsertHead, data []byte) (*pb.BatchInsertResponse, error) {
+func handleBatch(ctx context.Context, db sqrl.ExecerContext, tables map[string]flock.Table, req *pb.BatchInsertHead, data []byte, format sqrl.PlaceholderFormat) (*pb.BatchInsertResponse, error) {
 	var rows []map[string]interface{}
 
 	if err := gob.NewDecoder(bytes.NewReader(data)).Decode(&rows); err != nil {
@@ -23,7 +23,7 @@ func handleBatch(ctx context.Context, db sqrl.ExecerContext, tables map[string]f
 		return nil, errors.New("table not configured")
 	}
 
-	if err := flock.InsertBulk(ctx, db, rows, table, req.GetTableName()); err != nil {
+	if err := flock.InsertBulk(ctx, db, rows, table, req.GetTableName(), format); err != nil {
 		return nil, err
 	}
 

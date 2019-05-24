@@ -41,6 +41,7 @@ type errorHandle struct {
 // Server ....
 type Server struct {
 	DB     DB
+	p      sqrl.PlaceholderFormat
 	Logger Logger
 	Tables map[string]flock.Table
 }
@@ -102,7 +103,8 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 					for _, v := range receivedChunks {
 						data = append(data, v.GetData()...)
 					}
-					res, err := handleBatch(ch.Context(), tx, s.Tables, nextRequest, data)
+					// TODO : Pass placeholder in context
+					res, err := handleBatch(ch.Context(), tx, s.Tables, nextRequest, data, s.p)
 					if err != nil {
 						s.Logger.Printf("unable to handle batch insert request: %v", err)
 						inerror.lock.Lock()
@@ -144,12 +146,12 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 				return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", v.Batch.Value)
 			}
 		case *pb.FlockRequest_End:
-			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: &pb.BatchInsertResponse{Success: true}}}); err != nil {
-				s.Logger.Printf("unable to send echo message: %T", err)
-				return err
-			}
 			if err := tx.Commit(); err != nil {
 				s.Logger.Printf("could not commit the transaction: %v", err)
+				return err
+			}
+			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: &pb.BatchInsertResponse{Success: true}}}); err != nil {
+				s.Logger.Printf("unable to send echo message: %T", err)
 				return err
 			}
 			return nil

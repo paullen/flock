@@ -17,8 +17,8 @@ import (
 	_ "github.com/lib/pq"
 	flock "github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
-	flockSQL "github.com/srikrsna/flock/sql"
 	"github.com/srikrsna/flock/server"
+	flockSQL "github.com/srikrsna/flock/sql"
 	"google.golang.org/grpc"
 )
 
@@ -32,6 +32,7 @@ var portString = flag.String("pn", "", "Port Number")
 var database = flag.String("d", "", "Database")
 var path = flag.String("r", "", "Path")
 var databaseServer = flag.String("ds", "", "Database Server")
+var dollar = flag.Bool("pf", false, "If placeholder format of database is $(default : ?)")
 
 func main() {
 	log.SetFlags(0)
@@ -83,7 +84,7 @@ func makeServer() (*server.Server, error) {
 	}
 
 	fmt.Println(tables)
-	
+
 	u := &url.URL{
 		Scheme:   *databaseServer,
 		User:     url.UserPassword(*user, *pass),
@@ -101,10 +102,17 @@ func makeServer() (*server.Server, error) {
 		"Nil": Nil,
 	})
 
+	if *dollar {
+		format := sqrl.Dollar
+	} else {
+		format := sqrl.Question
+	}
+
 	return &server.Server{
 		Logger: l,
 		Tables: tables,
 		DB:     db,
+		p:      format,
 	}, nil
 }
 
@@ -211,24 +219,3 @@ func makeTables(path string) (map[string]flock.Table, error) {
 
 	return flock.BuildTables(fl), nil
 }
-
-// func connectDB(user, pass, host, database string) (*sql.DB, error) {
-// 	connUrl := url.URL{
-// 		Scheme:   "postgres",
-// 		User:     url.UserPassword(user, pass),
-// 		Host:     host,
-// 		Path:     database,
-// 		RawQuery: fmt.Sprintf("sslmode=%s&connect_timeout=%d", "disable", 3),
-// 	}
-
-// 	db, err := sql.Open("postgres", connUrl.String())
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if err := db.Ping(); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return db, nil
-// }
