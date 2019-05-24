@@ -11,8 +11,9 @@ type Flock struct {
 }
 
 type Entry struct {
-	Name   string   `@(String|Ident|RawString) "{"`
-	Query  string   `@RawString`
+	Name  string `@(String|Ident|RawString) "{"`
+	Query string `@RawString`
+	//Params []string `{ "~["(Ident|String|RawString)"]~" }`
 	Fields []*Field `"{" { @@ } "}" "}"`
 }
 

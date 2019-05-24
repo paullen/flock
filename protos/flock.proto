@@ -28,10 +28,11 @@ message Pong {
 }
 
 message Batch {
+    string BatchId = 1;
     oneof value {
-        BatchInsertHead head = 1;
-        DataStream chunk = 2;
-        BatchInsertTail tail = 3;
+        BatchInsertHead head = 2;
+        DataStream chunk = 3;
+        BatchInsertTail tail = 4;
     }
 }
 
