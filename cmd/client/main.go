@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -100,18 +99,15 @@ func runClient(db *sql.DB) error {
 		return err
 	}
 
+	// TODO : Fill this with the named params passed by user
+	var params = make(map[string]interface{})
+
 	// Iterating over all the tables
 	for _, v := range fl.Entries {
-		r := regexp.MustCompile(`~\[([a-zA-Z]+)\]~`)
-		params := r.FindAllStringSubmatch(v.Query, -1)
-		// TODO : Check if parameter count match number of values given
-		query := v.Query
-		for i, v := range params {
-			temp := regexp.MustCompile(`~\[` + v[1] + `\]~`)
-			query = temp.ReplaceAllString(query, os.Args[i+1]) // TODO : Fill parameters from UI
-		}
 
-		data, err := flockSQL.GetData(context.Background(), db, query)
+		query, args := parseQuery(v.Query, params)
+
+		data, err := flockSQL.GetData(context.Background(), db, query, args)
 		if err != nil {
 			return err
 		}

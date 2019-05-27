@@ -5,7 +5,6 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"testing"
 
 	"github.com/alecthomas/repr"
@@ -47,19 +46,7 @@ func TestParseSchema(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseSchema() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			r := regexp.MustCompile(`~\[([a-zA-Z]+)\]~`)
-			for _, v := range fl.Entries {
-				params := r.FindAllStringSubmatch(v.Query, -1)
-				if len(params) != len(os.Args[3:]) {
-					t.Fatal("Mismatched parameters")
-				}
-				query := v.Query
-				for i, v := range params {
-					temp := regexp.MustCompile(`~\[` + v[1] + `\]~`)
-					query = temp.ReplaceAllString(query, os.Args[3+i])
-				}
-				t.Logf(query)
-			}
+
 			//fmt.Println(flock.BuildTables(fl))
 			if *replace {
 				f, err := os.Create(outPath + tt.name)

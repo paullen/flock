@@ -22,8 +22,8 @@ func ConnectDB(u *url.URL, databaseSrv string) (*sql.DB, error) {
 }
 
 //GetData  - Returns select query results
-func GetData(ctx context.Context, db *sql.DB, query string) ([]map[string]interface{}, error) {
-	rows, err := db.Query(query)
+func GetData(ctx context.Context, db *sql.DB, query string, args []interface{}) ([]map[string]interface{}, error) {
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

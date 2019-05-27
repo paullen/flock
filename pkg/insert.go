@@ -3,9 +3,7 @@ package flock
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/elgris/sqrl"
 )
@@ -39,10 +37,7 @@ func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 
 func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value, format sqrl.PlaceholderFormat) error {
 
-	start := time.Now()
 	inst := BuildInsertStatement(table, tableName, format)
-
-	// TODO : Parameterize Placeholder format
 
 	for _, row := range rows {
 		data, err := CalculateValuesOfRow(row, table, funcMap)
@@ -58,15 +53,10 @@ func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 		return err
 	}
 
-	fmt.Println(query, "\n", args)
-
-	v, err := db.ExecContext(ctx, query, args...)
+	_, err = db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
-	fmt.Println(v)
-
-	fmt.Println(time.Since(start))
 
 	return nil
 }
@@ -133,7 +123,7 @@ func BuildSingleInsertQuery(table Table, tableName string, format sqrl.Placehold
 
 //SetLimit ...
 func SetLimit(in int) error {
-	if in >= 0 {
+	if in > 0 {
 		sqlLimit = in
 	} else {
 		return errors.New("limit needs to be an integer greater than 0")
