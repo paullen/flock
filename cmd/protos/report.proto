@@ -8,12 +8,12 @@ service Report {
 }
 
 message ReportRequest {
-    int64 chunks = 1;
-    int64 tables = 2;
-    int64 percentage = 3;
 }
 
 message ReportResponse {
+    int64 chunks = 1;
+    int64 tables = 2;
+    int64 percentage = 3;
 }
 
 message PingRequest {
@@ -25,6 +25,7 @@ message PingRequest {
 }
 
 message PingResponse {
+    bool success = 1;
 }
 
 message Server {
@@ -33,9 +34,11 @@ message Server {
 }
 
 message ClientDB {
-
+    string url = 1;
+    string database = 2;
 }
 
 message ServerDB {
-
+    string url = 1;
+    string database = 2;
 }
