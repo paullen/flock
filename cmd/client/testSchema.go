@@ -8,6 +8,7 @@ import (
 	flock "github.com/srikrsna/flock/pkg"
 )
 
+// Reads the flock file and extracts the named parameters
 func testSchema(f io.Reader) ([]string, error) {
 
 	params := make([]string, 0)
