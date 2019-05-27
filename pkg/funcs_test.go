@@ -12,9 +12,7 @@ func TestRegisterFunc(t *testing.T) {
 		"one":  func() int { return 1 },
 		"two":  func(string) bool { return false },
 		"four": func(float64) (error, error) { return nil, nil },
-		//"string": func() (string, int, error) { return "so", 1, nil },
 	}
-
 	RegisterFunc(testFuncs)
 }
 

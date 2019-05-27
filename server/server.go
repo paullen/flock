@@ -123,7 +123,6 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			case *pb.Batch_Chunk:
 
 				value, ok := chunkMap.Load(v.Batch.BatchId)
-
 				if !ok {
 					s.Logger.Printf("unidentified stream. Please send BatchInserHead before beginning a stream")
 					return errors.New("stream not found")
@@ -132,7 +131,6 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			case *pb.Batch_Tail:
 
 				value, ok := chunkMap.Load(v.Batch.BatchId)
-
 				if !ok {
 					s.Logger.Printf("unidentified stream. Please send BatchInserHead before beginning a stream")
 					return errors.New("stream not found")
@@ -151,7 +149,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 				return err
 			}
 			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: &pb.BatchInsertResponse{Success: true}}}); err != nil {
-				s.Logger.Printf("unable to send echo message: %T", err)
+				s.Logger.Printf("COMMIT SUCCESSFUL but unable to send echo message: %T", err)
 				return err
 			}
 			return nil

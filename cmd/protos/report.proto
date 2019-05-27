@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package main;
+
+service Report {
+    rpc Ping(stream PingRequest) returns (stream PingResponse);
+    rpc Report(stream ReportRequest) returns (stream ReportResponse);
+}
+
+message ReportRequest {
+    int64 chunks = 1;
+    int64 tables = 2;
+    int64 percentage = 3;
+}
+
+message ReportResponse {
+}
+
+message PingRequest {
+    oneof value {
+        Server server = 1;
+        ClientDB clientDB = 2;
+        ServerDB serverDB = 3;
+    }
+}
+
+message PingResponse {
+}
+
+message Server {
+    string ip = 1;
+    string port = 2;
+}
+
+message ClientDB {
+
+}
+
+message ServerDB {
+
+}

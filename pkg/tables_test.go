@@ -4,6 +4,6 @@ import (
 	"testing"
 )
 
-func TestBuildTable(t *testing.T) {
+func TestBuildTables(t *testing.T) {
 
 }
