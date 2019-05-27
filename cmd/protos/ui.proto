@@ -1,13 +1,18 @@
 syntax = "proto3";
 
-package main;
+package UIproto;
 
-service Report {
-    rpc Ping(stream PingRequest) returns (stream PingResponse);
-    rpc Report(stream ReportRequest) returns (stream ReportResponse);
+service UI {
+    rpc Ping(PingRequest) returns (PingResponse);
+    rpc Report(ReportRequest) returns (stream ReportResponse);
 }
 
 message ReportRequest {
+    Server server = 1;
+    ServerDB serverDB = 2;
+    ClientDB clientDB = 3;
+    bytes flock = 4;
+    bytes plugin = 5;
 }
 
 message ReportResponse {
