@@ -5,6 +5,7 @@ import (
 	"regexp"
 )
 
+// Generates parameterized query and arguments according to the values and query provided
 func parseQuery(query string, params map[string]interface{}) (string, []interface{}) {
 	r := regexp.MustCompile(`\@([a-zA-Z]+)`)
 	namedParams := r.FindAllStringSubmatch(query, -1)

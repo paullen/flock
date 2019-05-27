@@ -59,24 +59,30 @@ func main() {
 	}
 
 	//Connect to databsse
-	db, err := flockSQL.ConnectDB(u, *databaseServer)
+	db, err := flockSQL.ConnectDB(u.String(), *databaseServer)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer db.Close()
 
-	if err := runClient(db); err != nil {
+	// cli, err := ConnClient("23.251.141.168:50051")
+	// if err ! nil {
+	// 	return nil
+	// }
+
+	// go runUIServer()
+
+	if err := runFlockClient(cli, db); err != nil {
 		log.Fatalln(err)
 		return
 	}
-
 }
 
-func runClient(db *sql.DB) error {
+func runFlockClient(cli *pb.FlockClient, db *sql.DB) error {
 
-	conn, err := grpc.Dial("23.251.141.168:50051", grpc.WithInsecure())
+	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer conn.Close()
 
@@ -84,8 +90,10 @@ func runClient(db *sql.DB) error {
 
 	fcli, err := cli.Flock(context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return nil
+
 	start := time.Now()
 	f, err := os.Open(*schemaPath)
 	if err != nil {
@@ -129,7 +137,6 @@ func runClient(db *sql.DB) error {
 			}
 			complete := buf.Bytes()
 			startChunk := 0
-			offset := false
 			chunks := int64(len(complete) / gobLimit)
 			if len(complete)%gobLimit > 0 {
 				chunks++
@@ -151,11 +158,10 @@ func runClient(db *sql.DB) error {
 			}
 
 			// Sending chunks of data stream
-			for !offset {
+			for i := 0; i < chunks; i++ {
 				lenChunk := gobLimit
 				if startChunk+lenChunk >= len(complete) {
 					lenChunk = len(complete) - startChunk
-					offset = true
 				}
 
 				if err := fcli.Send(&pb.FlockRequest{
@@ -207,4 +213,34 @@ func runClient(db *sql.DB) error {
 	}
 	log.Println(res)
 	return nil
+}
+
+func pingServer(ctx context.Context, serverIP string) error {
+	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	cli := pb.NewFlockClient(conn)
+
+	_, err := cli.Health(ctx, &pb.Ping{})
+	if err != nil {
+		return err
+	}
+}
+
+func pingServerDatabase(ctx context.Context, serverIP, url, database string) error {
+	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	cli := pb.NewFlockClient(conn)
+
+	_, err := cli.DatabaseHealth(ctx, &pb.DBPing{Url: url, Database: database})
+	if err != nil {
+		return err
+	}
 }

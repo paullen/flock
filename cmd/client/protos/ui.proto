@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package UIproto;
+
+service UI {
+    rpc Ping(PingRequest) returns (PingResponse);
+    rpc SchemaTest(SchemaFile) returns (SchemaResponse);
+    rpc Report(ReportRequest) returns (stream ReportResponse);
+}
+
+message ReportRequest {
+    Server server = 1;
+    ServerDB serverDB = 2;
+    ClientDB clientDB = 3;
+    bytes flock = 4;
+    bytes plugin = 5;
+    map<string, string> params = 6;
+}
+
+message ReportResponse {
+    int64 chunks = 1;
+    int64 tables = 2;
+    int64 percentage = 3;
+}
+
+message PingRequest {
+    oneof value {
+        Server server = 1;
+        ClientDB clientDB = 2;
+        ServerDB serverDB = 3;
+    }
+}
+
+message PingResponse {
+}
+
+message SchemaFile {
+    bytes file = 1;
+}
+
+message SchemaResponse {
+    repeated string params = 2;
+}
+
+message Server {
+    string ip = 1;
+}
+
+message ClientDB {
+    string url = 1;
+    string database = 2;
+}
+
+message ServerDB {
+    Server server = 1;
+    string url = 2;
+    string database = 3;
+}
+
