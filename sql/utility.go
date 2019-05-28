@@ -3,13 +3,12 @@ package flock
 import (
 	"context"
 	"database/sql"
-	"net/url"
 )
 
 //ConnectDB -  Return database connection interface when passed the connection string and database
-func ConnectDB(u *url.URL, databaseSrv string) (*sql.DB, error) {
+func ConnectDB(u string, databaseSrv string) (*sql.DB, error) {
 
-	db, err := sql.Open(databaseSrv, u.String())
+	db, err := sql.Open(databaseSrv, u)
 	if err != nil {
 		return nil, err
 	}
