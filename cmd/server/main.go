@@ -60,6 +60,7 @@ func main() {
 func makeServer() (*server.Server, error) {
 	l := log.New(os.Stderr, "", 0)
 
+	// FOR FUTURE REFERENCE
 	// u := &url.URL{
 	// 	Scheme:   *databaseServer,
 	// 	User:     url.UserPassword(*user, *pass),
