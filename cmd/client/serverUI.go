@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"log"
 	"net"
 	"os"
@@ -69,8 +70,14 @@ func (s *Server) Report(req *pb.ReportRequest, srv pb.UI_ReportServer) error {
 
 	progChan := make(chan progress)
 
-	// TODO : Receive map from protobuf and send it to runFlockClient
-	if err := runFlockClient(req.Server.Ip, req.ClientDB.Url, req.ClientDB.Database, req.ServerDB.Url, req.ServerDB.Database, req.Dollar, req.Flock, req.Plugin, progChan); err != nil {
+	// Unpack the params from json to a map
+	params := make(map[string]interface{})
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		s.Logger.Printf("failed to parse params: %v", err)
+		return err
+	}
+
+	if err := runFlockClient(req.Server.Ip, req.ClientDB.Url, req.ClientDB.Database, req.ServerDB.Url, req.ServerDB.Database, req.Dollar, req.Flock, req.Plugin, params, progChan); err != nil {
 		s.Logger.Printf("failed to transfer data: %v", err)
 		return err
 	}
