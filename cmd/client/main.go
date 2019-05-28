@@ -48,14 +48,14 @@ func main() {
 	// }
 
 	if err := runUIServer(); err != nil {
-		fmt.Printf("Failed to start UI server: %v", err)
+		fmt.Printf("UI server terminated: %v", err)
 	}
 
 }
 
 // Functions implementing the relay functionality between the UI and the server
 
-func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, dollar bool, schema, plugin []byte, ch chan progress) error {
+func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, dollar bool, schema, plugin []byte, params map[string]interface{}, ch chan progress) error {
 
 	// Connect to flock server
 	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
@@ -93,6 +93,10 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 		return err
 	}
 
+	if _, err := fcli.Recv(); err != nil {
+		return err
+	}
+
 	// Get User Specified Query
 	fl, err := flock.ParseSchema(bytes.NewReader(schema))
 	if err != nil {
@@ -101,9 +105,6 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 
 	// Get total number of tables to calculate percentage
 	numTables := len(fl.Entries)
-
-	// TODO : Fill this with the named params passed by user
-	var params = make(map[string]interface{})
 
 	// Iterating over all the tables
 	for t, v := range fl.Entries {

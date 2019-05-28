@@ -16,7 +16,7 @@ message ReportRequest {
     bool dollar = 4;
     bytes flock = 5;
     bytes plugin = 6;
-    map<string, string> params = 7;
+    bytes params = 7;
 }
 
 message ReportResponse {
