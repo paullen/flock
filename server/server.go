@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/gob"
@@ -12,6 +13,7 @@ import (
 	"github.com/elgris/sqrl"
 	flock "github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
+	flockSQL "github.com/srikrsna/flock/sql"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -40,22 +42,72 @@ type errorHandle struct {
 
 // Server ....
 type Server struct {
-	DB     DB
-	p      sqrl.PlaceholderFormat
 	Logger Logger
-	Tables map[string]flock.Table
 }
 
 // To check whether it conforms to the interface
 var _ pb.FlockServer = (*Server)(nil)
 
+// Health ...
+func (s *Server) Health(ctx context.Context, in *pb.Ping) (*pb.Pong, error) {
+	return &pb.Pong{}, nil
+}
+
+//DatabaseHealth ...
+func (s *Server) DatabaseHealth(ctx context.Context, in *pb.DBPing) (*pb.Pong, error) {
+	db, err := flockSQL.ConnectDB(in.Url, in.Database)
+	if err != nil {
+		return nil, err
+	}
+	db.Close()
+	return &pb.Pong{}, nil
+}
+
 // Flock ...
 func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 	var next pb.FlockRequest
 	var inError = errorHandle{nil, &sync.Mutex{}}
+	var db DB
+	var p sqrl.PlaceholderFormat
+	var tables map[string]flock.Table
+
+	if err := ch.RecvMsg(&next); err != nil {
+		return err
+	}
+
+	// Prepare the server for the Flock process
+	switch v := next.Value.(type) {
+	case *pb.FlockRequest_Start:
+		// To resolve recreation of db in this scope
+		var err error
+
+		db, err = flockSQL.ConnectDB(v.Start.Url, v.Start.Database)
+		if err != nil {
+			s.Logger.Printf("failed to connect to database: %v", err)
+			return err
+		}
+
+		fl, err := flock.ParseSchema(bytes.NewBuffer(v.Start.GetSchema()))
+		if err != nil {
+			s.Logger.Printf("failed to build tables: %v", err)
+			return err
+		}
+
+		tables = flock.BuildTables(fl)
+
+		if v.Start.Dollar == true {
+			p = sqrl.Dollar
+		} else {
+			p = sqrl.Question
+		}
+	default:
+		s.Logger.Printf("might be a version mis match unknown message type received: %T", next.Value)
+		return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", next.Value)
+	}
+
 	// Implementation for a single user
 	// To iterate over a database wrap the below code in another for loop
-	tx, err := s.DB.BeginTx(ch.Context(), nil)
+	tx, err := db.BeginTx(ch.Context(), nil)
 	if err != nil {
 		s.Logger.Printf("unable to create transaction: %v", err)
 		return err
@@ -86,7 +138,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			}
 			switch batch := v.Batch.Value.(type) {
 			case *pb.Batch_Head:
-				var tempChannel = make(chan *pb.DataStream, batch.Head.Chunks)
+				var tempChannel = make(chan *pb.DataStream, batch.Head.Chunks+1)
 
 				chunkMap.Store(v.Batch.BatchId, tempChannel)
 
@@ -104,7 +156,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 						data = append(data, v.GetData()...)
 					}
 					// TODO : Pass placeholder in context
-					res, err := handleBatch(ch.Context(), tx, s.Tables, nextRequest, data, s.p)
+					res, err := handleBatch(ch.Context(), tx, tables, nextRequest, data, p)
 					if err != nil {
 						s.Logger.Printf("unable to handle batch insert request: %v", err)
 						inerror.lock.Lock()
@@ -129,12 +181,12 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 				}
 				value.(chan *pb.DataStream) <- batch.Chunk
 			case *pb.Batch_Tail:
-
 				value, ok := chunkMap.Load(v.Batch.BatchId)
 				if !ok {
 					s.Logger.Printf("unidentified stream. Please send BatchInserHead before beginning a stream")
 					return errors.New("stream not found")
 				}
+				// TODO : Close channel when all chunks are delivered
 				close(value.(chan *pb.DataStream))
 
 				chunkMap.Delete(v.Batch.BatchId)

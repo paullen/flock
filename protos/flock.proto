@@ -3,14 +3,17 @@ syntax = "proto3";
 package flock;
 
 service Flock {
+    rpc Health(Ping) returns (Pong);
+    rpc DatabaseHealth(DBPing) returns (Pong);
     rpc Flock (stream FlockRequest) returns (stream FlockResponse);
 }
 
 message FlockRequest {
     oneof value {
-        Ping ping = 1;
-        Batch batch = 2;
-        EndStream end = 3;
+        Start start = 1;
+        Ping ping = 2;
+        Batch batch = 3;
+        EndStream end = 4;
     }
 }
 
@@ -21,10 +24,23 @@ message FlockResponse {
     }
 }
 
+message Start {
+    string url = 1;
+    string database = 2;
+    bool dollar = 3;
+    bytes schema = 4;
+    bytes plugin = 5;
+}
+
 message Ping {
 }
 
 message Pong {
+}
+
+message DBPing {
+    string url = 1;
+    string database = 2;
 }
 
 message Batch {

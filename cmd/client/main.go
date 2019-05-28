@@ -3,14 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/gob"
-	"flag"
 	"fmt"
 	"log"
-	"net/url"
-	"os"
-	"strconv"
 	"time"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -24,94 +19,112 @@ func init() {
 	gob.Register(&time.Time{})
 }
 
-var user = flag.String("u", "", "Username")
-var pass = flag.String("p", "", "Password")
-var host = flag.String("h", "", "Host")
-var portString = flag.String("pn", "", "Port Number")
-var database = flag.String("d", "", "Database")
-var path = flag.String("r", "", "Path")
-var databaseServer = flag.String("ds", "", "Database Server")
-var schemaPath = flag.String("s", "", "path to your schema file")
+type progress struct {
+	chunks     int
+	tables     int
+	percentage float64
+}
+
+// var user = flag.String("u", "", "Username")
+// var pass = flag.String("p", "", "Password")
+// var host = flag.String("h", "", "Host")
+// var portString = flag.String("pn", "", "Port Number")
+// var database = flag.String("d", "", "Database")
+// var path = flag.String("r", "", "Path")
+// var databaseServer = flag.String("ds", "", "Database Server")
+// var schemaPath = flag.String("s", "", "path to your schema file")
 
 var gobLimit = 60000 // Gob data limit in bytes
 var rowLimit = 100   // Number of rows that will be sent at a time
 
 func main() {
-	log.SetFlags(0)
-	flag.Parse()
+
+	// log.SetFlags(0)
+	// flag.Parse()
 	// queryPlaceholder := os.Args[1:]
-	port, err := strconv.Atoi(*portString)
-	if err != nil {
-		log.Fatalln(err)
-		return
-	}
+	// port, err := strconv.Atoi(*portString)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// 	return
+	// }
 
 	//Get database connection string
-	query := url.Values{}
-	query.Add("database", *database)
+	// query := url.Values{}
+	// query.Add("database", *database)
 
-	u := &url.URL{
-		Scheme:   *databaseServer,
-		User:     url.UserPassword(*user, *pass),
-		Host:     fmt.Sprintf("%s:%d", *host, port),
-		Path:     *path,
-		RawQuery: query.Encode(),
-	}
-
-	//Connect to databsse
-	db, err := flockSQL.ConnectDB(u.String(), *databaseServer)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer db.Close()
+	// u := &url.URL{
+	// 	Scheme:   *databaseServer,
+	// 	User:     url.UserPassword(*user, *pass),
+	// 	Host:     fmt.Sprintf("%s:%d", *host, port),
+	// 	Path:     *path,
+	// 	RawQuery: query.Encode(),
+	// }
 
 	// cli, err := ConnClient("23.251.141.168:50051")
 	// if err ! nil {
 	// 	return nil
 	// }
 
-	// go runUIServer()
-
-	if err := runFlockClient(cli, db); err != nil {
-		log.Fatalln(err)
-		return
+	if err := runUIServer(); err != nil {
+		fmt.Printf("Failed to start UI server: %v", err)
 	}
+
 }
 
-func runFlockClient(cli *pb.FlockClient, db *sql.DB) error {
+// Functions implementing the relay functionality between the UI and the server
 
+func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, dollar bool, schema, plugin []byte, ch chan progress) error {
+
+	// Connect to flock server
 	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer conn.Close()
 
+	// Connect to the client database
+	db, err := flockSQL.ConnectDB(clientURL, clientDB)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
 	cli := pb.NewFlockClient(conn)
 
+	// Receive the client-side stream of the Flock RPC
 	fcli, err := cli.Flock(context.Background())
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return nil
 
 	start := time.Now()
-	f, err := os.Open(*schemaPath)
-	if err != nil {
+
+	if err := fcli.Send(&pb.FlockRequest{
+		Value: &pb.FlockRequest_Start{
+			Start: &pb.Start{
+				Url:      serverURL,
+				Database: serverDB,
+				Dollar:   dollar,
+				Schema:   schema,
+				Plugin:   plugin,
+			}}}); err != nil {
 		return err
 	}
-	defer f.Close()
 
 	// Get User Specified Query
-	fl, err := flock.ParseSchema(f)
+	fl, err := flock.ParseSchema(bytes.NewReader(schema))
 	if err != nil {
 		return err
 	}
+
+	// Get total number of tables to calculate percentage
+	numTables := len(fl.Entries)
 
 	// TODO : Fill this with the named params passed by user
 	var params = make(map[string]interface{})
 
 	// Iterating over all the tables
-	for _, v := range fl.Entries {
+	for t, v := range fl.Entries {
 
 		query, args := parseQuery(v.Query, params)
 
@@ -158,7 +171,7 @@ func runFlockClient(cli *pb.FlockClient, db *sql.DB) error {
 			}
 
 			// Sending chunks of data stream
-			for i := 0; i < chunks; i++ {
+			for i := int64(0); i < chunks; i++ {
 				lenChunk := gobLimit
 				if startChunk+lenChunk >= len(complete) {
 					lenChunk = len(complete) - startChunk
@@ -200,7 +213,7 @@ func runFlockClient(cli *pb.FlockClient, db *sql.DB) error {
 
 			log.Println(time.Since(start))
 			log.Println(res)
-
+			ch <- progress{i + 1, t + 1, (float64(t+1) / float64(numTables))}
 			startRow += lenRow
 		}
 	}
@@ -218,29 +231,31 @@ func runFlockClient(cli *pb.FlockClient, db *sql.DB) error {
 func pingServer(ctx context.Context, serverIP string) error {
 	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer conn.Close()
 
 	cli := pb.NewFlockClient(conn)
 
-	_, err := cli.Health(ctx, &pb.Ping{})
+	_, err = cli.Health(ctx, &pb.Ping{})
 	if err != nil {
 		return err
 	}
+	return nil
 }
 
 func pingServerDatabase(ctx context.Context, serverIP, url, database string) error {
 	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer conn.Close()
 
 	cli := pb.NewFlockClient(conn)
 
-	_, err := cli.DatabaseHealth(ctx, &pb.DBPing{Url: url, Database: database})
+	_, err = cli.DatabaseHealth(ctx, &pb.DBPing{Url: url, Database: database})
 	if err != nil {
 		return err
 	}
+	return nil
 }

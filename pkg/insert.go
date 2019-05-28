@@ -10,7 +10,7 @@ import (
 
 var sqlLimit = 1000
 
-//InsertBulk ...
+// InsertBulk ...
 func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, format sqrl.PlaceholderFormat) error {
 	startChunk := 0
 	endChunk := sqlLimit
@@ -61,7 +61,7 @@ func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 	return nil
 }
 
-//CalculateValuesOfRow ...
+// CalculateValuesOfRow ...
 func CalculateValuesOfRow(row map[string]interface{}, table Table, funcMap map[string]reflect.Value) ([]interface{}, error) {
 	data := make([]interface{}, 0, len(row))
 
@@ -98,21 +98,17 @@ func CalculateValuesOfRow(row map[string]interface{}, table Table, funcMap map[s
 	return data, nil
 }
 
-//BuildInsertStatement ...
+// BuildInsertStatement ...
 func BuildInsertStatement(table Table, tableName string, format sqrl.PlaceholderFormat) *sqrl.InsertBuilder {
 	cols := make([]string, 0, len(table.Keys))
 	for _, key := range table.Ordered {
 		cols = append(cols, key)
 	}
 
-	// if tableName == "" {
-	// 	tableName = table.Name
-	// }
-
 	return sqrl.Insert(tableName).PlaceholderFormat(format).Columns(cols...).Suffix("ON CONFLICT DO NOTHING")
 }
 
-//BuildSingleInsertQuery ...
+// BuildSingleInsertQuery ...
 func BuildSingleInsertQuery(table Table, tableName string, format sqrl.PlaceholderFormat) (string, error) {
 	query, _, err := BuildInsertStatement(table, tableName, format).
 		Values(make([]interface{}, len(table.Keys))).
@@ -121,7 +117,7 @@ func BuildSingleInsertQuery(table Table, tableName string, format sqrl.Placehold
 	return query, err
 }
 
-//SetLimit ...
+// SetLimit ...
 func SetLimit(in int) error {
 	if in > 0 {
 		sqlLimit = in
@@ -131,7 +127,7 @@ func SetLimit(in int) error {
 	return nil
 }
 
-//GetLimit ...
+// GetLimit ...
 func GetLimit() int {
 	return sqlLimit
 }
