@@ -100,6 +100,12 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 		} else {
 			p = sqrl.Question
 		}
+
+		if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Pong{}}); err != nil {
+			s.Logger.Printf("failed to send start response: %v", err)
+			return err
+		}
+		
 	default:
 		s.Logger.Printf("might be a version mis match unknown message type received: %T", next.Value)
 		return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", next.Value)
