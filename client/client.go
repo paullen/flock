@@ -3,8 +3,9 @@ package client
 import (
 	"context"
 	"encoding/gob"
-	"github.com/srikrsna/flock/protos"
 	"time"
+
+	flock "github.com/srikrsna/flock/protos"
 )
 
 type Logger interface {
