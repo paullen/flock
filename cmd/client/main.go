@@ -30,7 +30,7 @@ var rowLimit = 100   // Number of rows that will be sent at a time
 
 func main() {
 
-	//Get database connection string
+	// FOR FUTURE REFERENCE
 	// query := url.Values{}
 	// query.Add("database", *database)
 
