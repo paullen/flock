@@ -3,10 +3,9 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"fmt"
+	"io"
 	"log"
 	"net"
-	"net/url"
 	"os"
 	"strconv"
 
@@ -18,21 +17,20 @@ import (
 	flock "github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
 	"github.com/srikrsna/flock/server"
-	flockSQL "github.com/srikrsna/flock/sql"
 	"google.golang.org/grpc"
 )
 
 var db *badger.DB
 
-var schemaPath = flag.String("I", "", "path to your schema file")
-var user = flag.String("u", "", "Username")
-var pass = flag.String("p", "", "Password")
-var host = flag.String("h", "", "Host")
-var portString = flag.String("pn", "", "Port Number")
-var database = flag.String("d", "", "Database")
-var path = flag.String("r", "", "Path")
-var databaseServer = flag.String("ds", "", "Database Server")
-var dollar = flag.Bool("pf", false, "If placeholder format of database is $(default : ?)")
+// var schemaPath = flag.String("I", "", "path to your schema file")
+// var user = flag.String("u", "", "Username")
+// var pass = flag.String("p", "", "Password")
+// var host = flag.String("h", "", "Host")
+// var portString = flag.String("pn", "", "Port Number")
+// var database = flag.String("d", "", "Database")
+// var path = flag.String("r", "", "Path")
+// var databaseServer = flag.String("ds", "", "Database Server")
+// var dollar = flag.Bool("pf", false, "If placeholder format of database is $(default : ?)")
 
 func main() {
 	log.SetFlags(0)
@@ -73,46 +71,20 @@ func main() {
 func makeServer() (*server.Server, error) {
 	l := log.New(os.Stderr, "", 0)
 
-	tables, err := makeTables(*schemaPath)
-	if err != nil {
-		return nil, err
-	}
-
-	port, err := strconv.Atoi(*portString)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println(tables)
-
-	u := &url.URL{
-		Scheme:   *databaseServer,
-		User:     url.UserPassword(*user, *pass),
-		Host:     fmt.Sprintf("%s:%d", *host, port),
-		Path:     *database,
-		RawQuery: fmt.Sprintf("sslmode=%s&connect_timeout=%d", "disable", 3),
-	}
-
-	db, err := flockSQL.ConnectDB(u, *databaseServer)
-	if err != nil {
-		return nil, err
-	}
+	// u := &url.URL{
+	// 	Scheme:   *databaseServer,
+	// 	User:     url.UserPassword(*user, *pass),
+	// 	Host:     fmt.Sprintf("%s:%d", *host, port),
+	// 	Path:     *database,
+	// 	RawQuery: fmt.Sprintf("sslmode=%s&connect_timeout=%d", "disable", 3),
+	// }
 
 	flock.RegisterFunc(flock.FuncMap{
 		"Nil": Nil,
 	})
 
-	if *dollar {
-		format := sqrl.Dollar
-	} else {
-		format := sqrl.Question
-	}
-
 	return &server.Server{
 		Logger: l,
-		Tables: tables,
-		DB:     db,
-		p:      format,
 	}, nil
 }
 
@@ -205,12 +177,7 @@ func Nil(a interface{}, b interface{}) interface{} {
 	return b
 }
 
-func makeTables(path string) (map[string]flock.Table, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
+func makeTables(f io.Reader) (map[string]flock.Table, error) {
 
 	fl, err := flock.ParseSchema(f)
 	if err != nil {

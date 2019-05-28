@@ -12,9 +12,11 @@ message ReportRequest {
     Server server = 1;
     ServerDB serverDB = 2;
     ClientDB clientDB = 3;
-    bytes flock = 4;
-    bytes plugin = 5;
-    map<string, string> params = 6;
+    // Placeholder for server database
+    bool dollar = 4;
+    bytes flock = 5;
+    bytes plugin = 6;
+    map<string, string> params = 7;
 }
 
 message ReportResponse {
