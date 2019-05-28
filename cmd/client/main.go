@@ -25,28 +25,10 @@ type progress struct {
 	percentage float64
 }
 
-// var user = flag.String("u", "", "Username")
-// var pass = flag.String("p", "", "Password")
-// var host = flag.String("h", "", "Host")
-// var portString = flag.String("pn", "", "Port Number")
-// var database = flag.String("d", "", "Database")
-// var path = flag.String("r", "", "Path")
-// var databaseServer = flag.String("ds", "", "Database Server")
-// var schemaPath = flag.String("s", "", "path to your schema file")
-
 var gobLimit = 60000 // Gob data limit in bytes
 var rowLimit = 100   // Number of rows that will be sent at a time
 
 func main() {
-
-	// log.SetFlags(0)
-	// flag.Parse()
-	// queryPlaceholder := os.Args[1:]
-	// port, err := strconv.Atoi(*portString)
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// 	return
-	// }
 
 	//Get database connection string
 	// query := url.Values{}
