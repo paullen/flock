@@ -53,7 +53,7 @@ func (s *Server) Health(ctx context.Context, in *pb.Ping) (*pb.Pong, error) {
 	return &pb.Pong{}, nil
 }
 
-//DatabaseHealth ...
+// DatabaseHealth ...
 func (s *Server) DatabaseHealth(ctx context.Context, in *pb.DBPing) (*pb.Pong, error) {
 	db, err := flockSQL.ConnectDB(in.Url, in.Database)
 	if err != nil {
@@ -105,7 +105,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			s.Logger.Printf("failed to send start response: %v", err)
 			return err
 		}
-		
+
 	default:
 		s.Logger.Printf("might be a version mis match unknown message type received: %T", next.Value)
 		return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", next.Value)
@@ -144,7 +144,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			}
 			switch batch := v.Batch.Value.(type) {
 			case *pb.Batch_Head:
-				var tempChannel = make(chan *pb.DataStream, batch.Head.Chunks+1)
+				var tempChannel = make(chan *pb.DataStream, batch.Head.Chunks)
 
 				chunkMap.Store(v.Batch.BatchId, tempChannel)
 
@@ -161,7 +161,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 					for _, v := range receivedChunks {
 						data = append(data, v.GetData()...)
 					}
-					// TODO : Pass placeholder in context
+
 					res, err := handleBatch(ch.Context(), tx, tables, nextRequest, data, p)
 					if err != nil {
 						s.Logger.Printf("unable to handle batch insert request: %v", err)
