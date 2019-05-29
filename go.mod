@@ -14,10 +14,12 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/google/uuid v1.0.0
 	github.com/kisielk/gotool v1.0.0 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lib/pq v1.0.0
 	github.com/magefile/mage v1.8.0
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/sergi/go-diff v1.0.0
 	google.golang.org/api v0.0.0-20180927231558-81028c6d7fe8 // indirect
 	google.golang.org/grpc v1.21.0
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

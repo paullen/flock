@@ -7,12 +7,14 @@ import (
 
 var funcMap = map[string]reflect.Value{}
 
+// FuncMap ...
 type FuncMap map[string]interface{}
 
 var (
 	errorType = reflect.TypeOf((*error)(nil)).Elem()
 )
 
+// RegisterFunc ...
 func RegisterFunc(fm FuncMap) {
 	for name, v := range fm {
 		rv := reflect.ValueOf(v)
