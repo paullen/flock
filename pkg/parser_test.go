@@ -12,7 +12,8 @@ import (
 	flock "github.com/srikrsna/flock/pkg"
 )
 
-var replace = flag.Bool("replace", false, "Replace flag replaces the output files instead of comparing them")
+var replacef = flag.Bool("replacef", false, "Replace flag replaces the flock output files specifically instead of comparing them")
+var replace = flag.Bool("replace", false, "Replace flag replaces both the flock and table output files instead of comparing them")
 
 var printOpts = []repr.Option{
 	repr.Indent("\t"),
@@ -47,8 +48,7 @@ func TestParseSchema(t *testing.T) {
 				t.Errorf("ParseSchema() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			//fmt.Println(flock.BuildTables(fl))
-			if *replace {
+			if *replace || *replacef {
 				f, err := os.Create(outPath + tt.name)
 				if err != nil {
 					t.Fatal(err)

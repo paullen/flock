@@ -18,6 +18,7 @@ type Func struct {
 	Parameters []reflect.Value
 }
 
+// BuildTables
 func BuildTables(flock *Flock) map[string]Table {
 	res := make(map[string]Table, len(flock.Entries))
 	for _, e := range flock.Entries {
