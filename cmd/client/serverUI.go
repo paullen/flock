@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"log"
@@ -43,11 +42,12 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 		db.Close()
 		return &pb.PingResponse{}, nil
 	case *pb.PingRequest_ServerDB:
-		if err := pingServerDatabase(ctx, v.ServerDB.Server.Ip, v.ServerDB.Url, v.ServerDB.Database); err != nil {
+		base, err := pingServerDatabase(ctx, v.ServerDB.Server.Ip, v.ServerDB.Url, v.ServerDB.Database)
+		if err != nil {
 			s.Logger.Printf("Failed to ping server database: %v", err)
 			return nil, err
 		}
-		return &pb.PingResponse{}, nil
+		return &pb.PingResponse{Schema: base}, nil
 	default:
 		s.Logger.Printf("might be a version mis match unknown message type received: %T", req.Value)
 		return nil, status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", req.Value)
@@ -56,13 +56,22 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 
 // SchemaTest ...
 func (s *Server) SchemaTest(ctx context.Context, req *pb.SchemaFile) (*pb.SchemaResponse, error) {
-	file := bytes.NewReader(req.File)
-	params, err := testSchema(file)
+
+	params, err := testSchema(req.File)
 	if err != nil {
 		s.Logger.Printf("failed to parse schema: %v", err)
 		return nil, err
 	}
 	return &pb.SchemaResponse{Params: params}, nil
+}
+
+// Plugin ...
+func (s *Server) Plugin(ctx context.Context, req *pb.PluginRequest) (*pb.PluginResponse, error) {
+	if err := testPlugin(req.Plugin); err != nil {
+		s.Logger.Printf("plugin test failed: %v", err)
+		return nil, err
+	}
+	return &pb.PluginResponse{}, nil
 }
 
 // Report ...

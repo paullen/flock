@@ -1,18 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"regexp"
 
 	flock "github.com/srikrsna/flock/pkg"
 )
 
 // Reads the flock file and extracts the named parameters
-func testSchema(f io.Reader) ([]string, error) {
+func testSchema(f []byte) ([]string, error) {
+
+	buf := bytes.NewBuffer(f)
 
 	params := make([]string, 0)
-	fl, err := flock.ParseSchema(f)
+	fl, err := flock.ParseSchema(buf)
 	if err != nil {
 		fmt.Println("Failed to parse schema. Please check your .fl file.")
 		return params, err
@@ -26,4 +28,11 @@ func testSchema(f io.Reader) ([]string, error) {
 		}
 	}
 	return params, nil
+}
+
+func testPlugin(f []byte) error {
+	if _, err := flock.PluginHandler(f); err != nil {
+		return err
+	}
+	return nil
 }
