@@ -14,6 +14,8 @@ import (
 	flock "github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
 	flockSQL "github.com/srikrsna/flock/sql"
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/gcsblob" // Presuming this is the GCS blob driver
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -54,13 +56,25 @@ func (s *Server) Health(ctx context.Context, in *pb.Ping) (*pb.Pong, error) {
 }
 
 // DatabaseHealth ...
-func (s *Server) DatabaseHealth(ctx context.Context, in *pb.DBPing) (*pb.Pong, error) {
+func (s *Server) DatabaseHealth(ctx context.Context, in *pb.DBPing) (*pb.DBPong, error) {
 	db, err := flockSQL.ConnectDB(in.Url, in.Database)
 	if err != nil {
 		return nil, err
 	}
-	db.Close()
-	return &pb.Pong{}, nil
+	defer db.Close()
+
+	info, err := flockSQL.GetSchema(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+
+	base, err := generateBase(info)
+	if err != nil {
+		s.Logger.Printf("failed to generate base: %v", err)
+		return nil, err
+	}
+
+	return &pb.DBPong{Schema: base}, nil
 }
 
 // Flock ...
@@ -87,13 +101,42 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			return err
 		}
 
-		fl, err := flock.ParseSchema(bytes.NewBuffer(v.Start.GetSchema()))
+		fl, err := flock.ParseSchema(bytes.NewBuffer(v.Start.Schema))
 		if err != nil {
 			s.Logger.Printf("failed to build tables: %v", err)
 			return err
 		}
 
 		tables = flock.BuildTables(fl)
+
+		plugins, err := flock.PluginHandler(v.Start.Plugin)
+		if err != nil {
+			s.Logger.Printf("failed to build plugin: %v", err)
+			return err
+		}
+
+		flock.RegisterFunc(plugins)
+
+		// TODO : Fill URL
+		url := ""
+
+		b, err := blob.OpenBucket(ch.Context(), url)
+		if err != nil {
+			s.Logger.Printf("failed to open bucket: %v", err)
+			return err
+		}
+
+		for name := range plugins {
+			wr, err := b.NewWriter(ch.Context(), name, nil)
+			if err != nil {
+				s.Logger.Printf("failed to create a writer to the blob %v: %v", name, err)
+				return err
+			}
+			if _, err := wr.Write(v.Start.Plugin); err != nil {
+				s.Logger.Printf("failed to write to blob %v: %v", name, nil)
+			}
+			wr.Close()
+		}
 
 		if v.Start.Dollar == true {
 			p = sqrl.Dollar
@@ -112,7 +155,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 	}
 
 	// Implementation for a single user
-	// To iterate over a database wrap the below code in another for loop
+	// To iterate over the multiple users wrap the below code in a for loop
 	tx, err := db.BeginTx(ch.Context(), nil)
 	if err != nil {
 		s.Logger.Printf("unable to create transaction: %v", err)
@@ -192,6 +235,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 					s.Logger.Printf("unidentified stream. Please send BatchInserHead before beginning a stream")
 					return errors.New("stream not found")
 				}
+
 				// TODO : Close channel when all chunks are delivered
 				close(value.(chan *pb.DataStream))
 

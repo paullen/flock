@@ -3,7 +3,7 @@ module github.com/srikrsna/flock
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
 	github.com/DATA-DOG/go-sqlmock v1.3.3
-	github.com/GoogleCloudPlatform/cloudsql-proxy v0.0.0-20180921012930-634f0881b90b
+	github.com/GoogleCloudPlatform/cloudsql-proxy v0.0.0-20190418212003-6ac0b49e7197
 	github.com/alecthomas/participle v0.2.1
 	github.com/alecthomas/repr v0.0.0-20180920225502-7ed41413b477
 	github.com/denisenkom/go-mssqldb v0.0.0-20180901172138-1eb28afdf9b6
@@ -12,14 +12,10 @@ require (
 	github.com/elgris/sqrl v0.0.0-20180926210025-d09d22f2d5ac
 	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	github.com/golang/protobuf v1.3.1
-	github.com/google/uuid v1.0.0
-	github.com/kisielk/gotool v1.0.0 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
-	github.com/lib/pq v1.0.0
+	github.com/google/uuid v1.1.1
+	github.com/lib/pq v1.1.0
 	github.com/magefile/mage v1.8.0
-	github.com/pkg/errors v0.8.0 // indirect
 	github.com/sergi/go-diff v1.0.0
-	google.golang.org/api v0.0.0-20180927231558-81028c6d7fe8 // indirect
+	gocloud.dev v0.14.0
 	google.golang.org/grpc v1.21.0
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"os"
+	"io/ioutil"
 	"reflect"
 	"testing"
 )
@@ -16,7 +16,7 @@ func TestTestSchema(t *testing.T) {
 	}
 	for _, v := range tests {
 		t.Run(v.name, func(t *testing.T) {
-			f, err := os.Open(v.input)
+			f, err := ioutil.ReadFile(v.input)
 			if err != nil {
 				t.Error(err.Error())
 			}
