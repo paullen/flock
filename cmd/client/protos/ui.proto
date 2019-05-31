@@ -5,6 +5,7 @@ package UIproto;
 service UI {
     rpc Ping(PingRequest) returns (PingResponse);
     rpc SchemaTest(SchemaFile) returns (SchemaResponse);
+    rpc Plugin(PluginRequest) returns (PluginResponse);
     rpc Report(ReportRequest) returns (stream ReportResponse);
 }
 
@@ -12,11 +13,10 @@ message ReportRequest {
     Server server = 1;
     ServerDB serverDB = 2;
     ClientDB clientDB = 3;
-    // Placeholder for server database
     bool dollar = 4;
     bytes flock = 5;
-    bytes plugin = 6;
-    bytes params = 7;
+    bytes params = 6;
+    bytes plugin = 7;
 }
 
 message ReportResponse {
@@ -34,6 +34,7 @@ message PingRequest {
 }
 
 message PingResponse {
+    bytes schema = 1;
 }
 
 message SchemaFile {
@@ -42,6 +43,14 @@ message SchemaFile {
 
 message SchemaResponse {
     repeated string params = 2;
+}
+
+message PluginRequest {
+    Server server = 1;
+    bytes plugin = 2;
+}
+
+message PluginResponse {
 }
 
 message Server {

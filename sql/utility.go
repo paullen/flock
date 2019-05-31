@@ -60,3 +60,56 @@ func GetData(ctx context.Context, db *sql.DB, query string, args []interface{}) 
 
 	return res, nil
 }
+
+// GetSchema - Return the column names of every table
+func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
+
+	// TODO : Generalize table query
+	tableQuery := "SHOW TABLES"
+
+	t, err := db.Query(tableQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	tables := make([]string, 0)
+
+	for t.Next() {
+		var table string
+
+		if err := t.Scan(&table); err != nil {
+			return nil, err
+		}
+
+		tables = append(tables, table)
+	}
+
+	res := make(map[string][]string)
+
+	for _, name := range tables {
+
+		// TODO : Fill column query
+		columnQuery := ""
+
+		cols, err := db.Query(columnQuery)
+		if err != nil {
+			return nil, err
+		}
+
+		columns := make([]string, 0)
+
+		for cols.Next() {
+			var column string
+
+			if err := cols.Scan(&column); err != nil {
+				return nil, err
+			}
+
+			columns = append(columns, column)
+		}
+
+		res[name] = columns
+	}
+
+	return res, nil
+}
