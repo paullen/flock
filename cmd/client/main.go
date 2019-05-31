@@ -56,7 +56,7 @@ func main() {
 
 // Functions implementing the relay functionality between the UI and the server
 
-func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, dollar bool, schema, plugin []byte, params map[string]interface{}, ch chan progress) error {
+func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, dollar bool, plugin, schema []byte, params map[string]interface{}, ch chan progress) error {
 
 	// Connect to flock server
 	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
@@ -236,18 +236,18 @@ func pingServer(ctx context.Context, serverIP string) error {
 	return nil
 }
 
-func pingServerDatabase(ctx context.Context, serverIP, url, database string) error {
+func pingServerDatabase(ctx context.Context, serverIP, url, database string) ([]byte, error) {
 	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer conn.Close()
 
 	cli := pb.NewFlockClient(conn)
 
-	_, err = cli.DatabaseHealth(ctx, &pb.DBPing{Url: url, Database: database})
+	res, err := cli.DatabaseHealth(ctx, &pb.DBPing{Url: url, Database: database})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return res.Schema, nil
 }

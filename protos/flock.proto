@@ -4,7 +4,7 @@ package flock;
 
 service Flock {
     rpc Health(Ping) returns (Pong);
-    rpc DatabaseHealth(DBPing) returns (Pong);
+    rpc DatabaseHealth(DBPing) returns (DBPong);
     rpc Flock (stream FlockRequest) returns (stream FlockResponse);
 }
 
@@ -41,6 +41,10 @@ message Pong {
 message DBPing {
     string url = 1;
     string database = 2;
+}
+
+message DBPong {
+    bytes schema = 1;
 }
 
 message Batch {
