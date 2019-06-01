@@ -1,7 +1,6 @@
 package flock
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -44,12 +43,12 @@ func PluginHandler(content []byte) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	fmt.Println(fmSym)
-
-	fm, ok := fmSym.(FuncMap)
+	fmPlain, ok := fmSym.(*map[string]interface{})
 	if !ok {
-		return nil, errors.New("unable to cast interface to funcmap")
+		return nil, fmt.Errorf("unable to assert interface as *map[string]interface{}, type: %T", fmSym)
 	}
+
+	fm := FuncMap(*fmPlain)
 
 	return fm, nil
 }

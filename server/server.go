@@ -115,6 +115,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			return err
 		}
 
+		// TODO : Run this in the init of the plugin
 		flock.RegisterFunc(plugins)
 
 		// TODO : Fill URL
