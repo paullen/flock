@@ -16,6 +16,8 @@ require (
 	github.com/lib/pq v1.1.0
 	github.com/magefile/mage v1.8.0
 	github.com/sergi/go-diff v1.0.0
+	github.com/uber-go/zap v1.10.0
+	go.uber.org/zap v1.10.0 // indirect
 	gocloud.dev v0.14.0
 	google.golang.org/grpc v1.21.0
 )
