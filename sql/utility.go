@@ -65,7 +65,8 @@ func GetData(ctx context.Context, db *sql.DB, query string, args []interface{}) 
 func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 
 	// TODO : Generalize table query
-	tableQuery := "SHOW TABLES"
+
+	tableQuery := "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES;"
 
 	t, err := db.Query(tableQuery)
 	if err != nil {
@@ -88,8 +89,9 @@ func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 
 	for _, name := range tables {
 
-		// TODO : Fill column query
-		columnQuery := ""
+		// TODO : Generalize column query
+
+		columnQuery := "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME   = " + name
 
 		cols, err := db.Query(columnQuery)
 		if err != nil {

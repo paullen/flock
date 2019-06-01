@@ -20,6 +20,5 @@ func TestPluginHandler(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(funcs)
-	t.Log(funcs["SayHi"])
+	funcs["SayHi"].(func(int))(9)
 }
