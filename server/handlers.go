@@ -25,7 +25,7 @@ func handleBatch(ctx context.Context, db sqrl.ExecerContext, tables map[string]f
 	}
 
 	if err := flock.InsertBulk(ctx, db, rows, table, req.GetTableName(), format); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to insert chunk. Table: %s\nData: %v\nError: %v", req.GetTableName(), rows, err)
 	}
 
 	return &pb.BatchInsertResponse{Success: true}, nil
