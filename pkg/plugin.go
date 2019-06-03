@@ -43,6 +43,8 @@ func PluginHandler(content []byte) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	fmt.Println(fmSym)
+
 	fmPlain, ok := fmSym.(*map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("unable to assert interface as *map[string]interface{}, type: %T", fmSym)

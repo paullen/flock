@@ -146,9 +146,9 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 			if err := fcli.Send(&pb.FlockRequest{
 				Value: &pb.FlockRequest_Batch{
 					Batch: &pb.Batch{
-						BatchId: batchID.String(),
 						Value: &pb.Batch_Head{
 							Head: &pb.BatchInsertHead{
+								BatchId:   batchID.String(),
 								TableName: v.Name,
 								Chunks:    chunks,
 							},
@@ -169,10 +169,11 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 				if err := fcli.Send(&pb.FlockRequest{
 					Value: &pb.FlockRequest_Batch{
 						Batch: &pb.Batch{
-							BatchId: batchID.String(),
 							Value: &pb.Batch_Chunk{
 								Chunk: &pb.DataStream{
-									Data: complete[startChunk:(startChunk + lenChunk)],
+									BatchId: batchID.String(),
+									Index:   i,
+									Data:    complete[startChunk:(startChunk + lenChunk)],
 								},
 							},
 						},
@@ -187,9 +188,8 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 			if err := fcli.Send(&pb.FlockRequest{
 				Value: &pb.FlockRequest_Batch{
 					Batch: &pb.Batch{
-						BatchId: batchID.String(),
 						Value: &pb.Batch_Tail{
-							Tail: &pb.BatchInsertTail{},
+							Tail: &pb.BatchInsertTail{BatchId: batchID.String()},
 						},
 					},
 				},
