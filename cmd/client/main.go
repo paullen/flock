@@ -29,6 +29,8 @@ type progress struct {
 var gobLimit = 60000 // Gob data limit in bytes
 var rowLimit = 100   // Number of rows that will be sent at a time
 
+var records = make(map[string]int)
+
 func main() {
 
 	// FOR FUTURE REFERENCE
@@ -116,7 +118,7 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 		if err != nil {
 			return err
 		}
-
+		records[v.Name] = len(data)
 		startRow := 0
 		rowChunks := len(data) / rowLimit
 		if len(data)%rowLimit > 0 {
@@ -209,7 +211,11 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 			startRow += lenRow
 		}
 	}
-	if err = fcli.Send(&pb.FlockRequest{Value: &pb.FlockRequest_End{}}); err != nil {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(records); err != nil {
+		return err
+	}
+	if err = fcli.Send(&pb.FlockRequest{Value: &pb.FlockRequest_End{End: &pb.EndStream{Records: buf.Bytes()}}}); err != nil {
 		return err
 	}
 	res, err := fcli.Recv()
