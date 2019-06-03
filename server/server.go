@@ -37,6 +37,7 @@ type Logger interface {
 type DB interface {
 	sqrl.ExecerContext
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+	QueryRow(string, ...interface{}) *sql.Row
 }
 
 var chunkMap = &sync.Map{}
@@ -257,6 +258,15 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 		case *pb.FlockRequest_End:
 			if err := tx.Commit(); err != nil {
 				s.Logger.Error("could not commit the transaction", zap.String("error", err.Error()))
+				return err
+			}
+			ok, err := handleVerification(db, tables, v.End.Records)
+			if err != nil {
+				if ok {
+					s.Logger.Error("number of inserted records don't match number of queried records", zap.String("info", err.Error()))
+					return err
+				}
+				s.Logger.Error("inserted records could not be retreived", zap.String("error", err.Error()))
 				return err
 			}
 			if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: &pb.BatchInsertResponse{Success: true}}}); err != nil {

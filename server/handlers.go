@@ -51,3 +51,20 @@ func generateBase(info map[string]([]string)) ([]byte, error) {
 
 	return buf.Bytes(), nil
 }
+
+func handleVerification(db DB, tables map[string]flock.Table, recordsEnc []byte) (bool, error) {
+	var records = make(map[string]int)
+	if err := gob.NewDecoder(bytes.NewReader(recordsEnc)).Decode(&records); err != nil {
+		return false, err
+	}
+	for table := range tables {
+		var count int
+		if err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count); err != nil {
+			return false, err
+		}
+		if records[table] != count {
+			return true, fmt.Errorf("expected: %v, got: %v", records[table], count)
+		}
+	}
+	return true, nil
+}

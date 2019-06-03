@@ -91,7 +91,7 @@ func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 
 		// TODO : Generalize column query
 
-		columnQuery := "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME   = " + name
+		columnQuery := "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = " + name
 
 		cols, err := db.Query(columnQuery)
 		if err != nil {
