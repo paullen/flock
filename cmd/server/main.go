@@ -73,12 +73,11 @@ func makeServer() (*server.Server, error) {
 		"Nil": Nil,
 	})
 
-	l, err := zap.NewDevelopment()
+	log, err := zap.NewDevelopment()
 	if err != nil {
 		return nil, err
 	}
 
-	log := l.Sugar()
 	// TODO : Add syncs and tweak the logger
 
 	return &server.Server{
