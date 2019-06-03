@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 	"net"
-	"os"
 	"strconv"
 
 	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
@@ -16,6 +15,7 @@ import (
 	flock "github.com/srikrsna/flock/pkg"
 	pb "github.com/srikrsna/flock/protos"
 	"github.com/srikrsna/flock/server"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -24,15 +24,16 @@ var db *badger.DB
 func main() {
 	log.SetFlags(0)
 	flag.Parse()
-	opts := badger.DefaultOptions
-	opts.Dir = "/tmp/badger"
-	opts.ValueDir = "/tmp/badger"
-	var err error
-	db, err = badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+
+	// opts := badger.DefaultOptions
+	// opts.Dir = "/tmp/badger"
+	// opts.ValueDir = "/tmp/badger"
+	// var err error
+	// db, err = badger.Open(opts)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer db.Close()
 
 	srv, err := makeServer()
 	if err != nil {
@@ -58,7 +59,6 @@ func main() {
 }
 
 func makeServer() (*server.Server, error) {
-	l := log.New(os.Stderr, "", 0)
 
 	// FOR FUTURE REFERENCE
 	// u := &url.URL{
@@ -73,8 +73,16 @@ func makeServer() (*server.Server, error) {
 		"Nil": Nil,
 	})
 
+	l, err := zap.NewDevelopment()
+	if err != nil {
+		return nil, err
+	}
+
+	log := l.Sugar()
+	// TODO : Add syncs and tweak the logger
+
 	return &server.Server{
-		Logger: l,
+		Logger: log,
 	}, nil
 }
 
