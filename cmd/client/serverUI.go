@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"fmt"
 
 	pb "github.com/srikrsna/flock/cmd/client/protos"
 	flockSQL "github.com/srikrsna/flock/sql"
@@ -15,10 +16,8 @@ import (
 
 // Logger ...
 type Logger interface {
-	Infof(string, ...interface{})
-	Error(...interface{})
-	Errorf(string, ...interface{})
-	Info(...interface{})
+	Info(string, ...zap.Field)
+	Error(string, ...zap.Field)
 	Sync() error
 }
 
@@ -33,14 +32,14 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 	switch v := req.Value.(type) {
 	case *pb.PingRequest_Server:
 		if err := pingServer(ctx, v.Server.Ip); err != nil {
-			s.Logger.Errorf("Failed to ping server: ", err)
+			s.Logger.Error("Failed to ping server", zap.String("error", err.Error()))
 			return nil, err
 		}
 		return &pb.PingResponse{}, nil
 	case *pb.PingRequest_ClientDB:
 		db, err := flockSQL.ConnectDB(v.ClientDB.Url, v.ClientDB.Database)
 		if err != nil {
-			s.Logger.Errorf("Failed to ping the client database: %v", err)
+			s.Logger.Error("Failed to ping the client database", zap.String("error", err.Error()))
 			return nil, err
 		}
 		db.Close()
@@ -48,12 +47,12 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 	case *pb.PingRequest_ServerDB:
 		base, err := pingServerDatabase(ctx, v.ServerDB.Server.Ip, v.ServerDB.Url, v.ServerDB.Database)
 		if err != nil {
-			s.Logger.Errorf("Failed to ping server database: %v", err)
+			s.Logger.Error("Failed to ping server database", zap.String("error", err.Error()))
 			return nil, err
 		}
 		return &pb.PingResponse{Schema: base}, nil
 	default:
-		s.Logger.Errorf("might be a version mis match unknown message type received: %T", req.Value)
+		s.Logger.Error("might be a version mis match unknown message type received", zap.String("type", fmt.Sprintf("%T", req.Value)))
 		return nil, status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", req.Value)
 	}
 }
@@ -63,7 +62,7 @@ func (s *Server) SchemaTest(ctx context.Context, req *pb.SchemaFile) (*pb.Schema
 	defer s.Logger.Sync()
 	params, err := testSchema(req.File)
 	if err != nil {
-		s.Logger.Errorf("failed to parse schema: %v", err)
+		s.Logger.Error("failed to parse schema", zap.String("error", err.Error()))
 		return nil, err
 	}
 	return &pb.SchemaResponse{Params: params}, nil
@@ -73,7 +72,7 @@ func (s *Server) SchemaTest(ctx context.Context, req *pb.SchemaFile) (*pb.Schema
 func (s *Server) Plugin(ctx context.Context, req *pb.PluginRequest) (*pb.PluginResponse, error) {
 	defer s.Logger.Sync()
 	if err := testPlugin(req.Plugin); err != nil {
-		s.Logger.Errorf("plugin test failed: %v", err)
+		s.Logger.Error("plugin test failed", zap.String("error", err.Error()))
 		return nil, err
 	}
 	return &pb.PluginResponse{}, nil
@@ -87,17 +86,17 @@ func (s *Server) Report(req *pb.ReportRequest, srv pb.UI_ReportServer) error {
 	// Unpack the params from json to a map
 	params := make(map[string]interface{})
 	if err := json.Unmarshal(req.Params, &params); err != nil {
-		s.Logger.Errorf("failed to parse params: %v", err)
+		s.Logger.Error("failed to parse params", zap.String("error", err.Error()))
 		return err
 	}
 
 	if err := runFlockClient(req.Server.Ip, req.ClientDB.Url, req.ClientDB.Database, req.ServerDB.Url, req.ServerDB.Database, req.Dollar, req.Flock, req.Plugin, params, progChan); err != nil {
-		s.Logger.Errorf("failed to transfer data: %v", err)
+		s.Logger.Error("failed to transfer data", zap.String("error", err.Error()))
 		return err
 	}
 	for v := range progChan {
 		if err := srv.Send(&pb.ReportResponse{Chunks: int64(v.chunks), Tables: int64(v.tables), Percentage: int64(v.percentage * 100)}); err != nil {
-			s.Logger.Errorf("unable to send progress report to UI: %v", err)
+			s.Logger.Error("unable to send progress report to UI", zap.String("error", err.Error()))
 			return err
 		}
 	}
@@ -105,12 +104,11 @@ func (s *Server) Report(req *pb.ReportRequest, srv pb.UI_ReportServer) error {
 }
 
 func runUIServer() error {
-	l, err := zap.NewDevelopment()
+	log, err := zap.NewDevelopment()
 	if err != nil {
 		return err
 	}
 
-	log := l.Sugar()
 	// TODO : Add syncs and tweak the logger
 
 	srv := &Server{Logger: log}
