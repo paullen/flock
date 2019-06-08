@@ -3,78 +3,68 @@ syntax = "proto3";
 package flock;
 
 service Flock {
-    rpc Health(Ping) returns (Pong);
-    rpc DatabaseHealth(DBPing) returns (DBPong);
-    rpc Flock (stream FlockRequest) returns (stream FlockResponse);
+  rpc Health(Ping) returns (Pong);
+  rpc DatabaseHealth(DBPing) returns (DBPong);
+  rpc Flock(stream FlockRequest) returns (stream FlockResponse);
 }
 
 message FlockRequest {
-    oneof value {
-        Start start = 1;
-        Ping ping = 2;
-        Batch batch = 3;
-        EndStream end = 4;
-    }
+  oneof value {
+    Start start = 1;
+    Ping ping = 2;
+    Batch batch = 3;
+    EndStream end = 4;
+  }
 }
 
 message FlockResponse {
-    oneof value {
-        Pong pong = 1;
-        BatchInsertResponse batch = 2;
-    }
+  oneof value {
+    Pong pong = 1;
+    BatchInsertResponse batch = 2;
+  }
 }
 
 message Start {
-    string url = 1;
-    string database = 2;
-    bool dollar = 3;
-    bytes schema = 4;
-    bytes plugin = 5;
+  string url = 1;
+  string database = 2;
+  bool dollar = 3;
+  bytes schema = 4;
+  bytes plugin = 5;
 }
 
-message Ping {
-}
+message Ping {}
 
-message Pong {
-}
+message Pong {}
 
 message DBPing {
-    string url = 1;
-    string database = 2;
+  string url = 1;
+  string database = 2;
 }
 
-message DBPong {
-    bytes schema = 1;
-}
+message DBPong { bytes schema = 1; }
 
 message Batch {
-    oneof value {
-        BatchInsertHead head = 1;
-        DataStream chunk = 2;
-        BatchInsertTail tail = 3;
-    }
+  oneof value {
+    BatchInsertHead head = 1;
+    DataStream chunk = 2;
+    BatchInsertTail tail = 3;
+  }
 }
 
-message EndStream {
-    bytes records = 1;
-}
+message EndStream { bytes records = 1; }
 
 message BatchInsertHead {
-    string BatchId = 1;
-    string tableName = 2;
-    int64 chunks = 3;
+  string BatchId = 1;
+  string tableName = 2;
+  int64 chunks = 3;
 }
 
 message DataStream {
-    string BatchId = 1;
-    int64 index = 2;
-    bytes data = 3;
+  string BatchId = 1;
+  int64 index = 2;
+  bytes data = 3;
 }
 
-message BatchInsertTail {
-    string BatchId = 1;
-}
+message BatchInsertTail { string BatchId = 1; }
 
-message BatchInsertResponse {
-    bool success = 1;
-}
+message BatchInsertResponse { bool success = 1; }

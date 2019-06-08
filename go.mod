@@ -10,13 +10,11 @@ require (
 	github.com/dgraph-io/badger v1.5.4
 	github.com/dgryski/go-farm v0.0.0-20180109070241-2de33835d102 // indirect
 	github.com/elgris/sqrl v0.0.0-20180926210025-d09d22f2d5ac
-	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	github.com/golang/protobuf v1.3.1
 	github.com/google/uuid v1.1.1
 	github.com/lib/pq v1.1.0
 	github.com/magefile/mage v1.8.0
 	github.com/sergi/go-diff v1.0.0
-	github.com/uber-go/zap v1.10.0
 	go.uber.org/zap v1.10.0
 	gocloud.dev v0.14.0
 	google.golang.org/grpc v1.21.0
