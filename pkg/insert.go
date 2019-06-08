@@ -12,33 +12,18 @@ var sqlLimit = 1000
 
 // InsertBulk ...
 func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, format sqrl.PlaceholderFormat) error {
-	startChunk := 0
-	endChunk := sqlLimit
-	inserts := len(rows) / sqlLimit
-	if len(rows)%sqlLimit > 0 {
-		inserts++
-	}
-	for i := 0; i < inserts; i++ {
-		if endChunk > len(rows) {
-			if startChunk < len(rows) {
-				endChunk = len(rows)
-			} else {
-				break
-			}
-		}
-		if err := insertBulk(ctx, db, rows[startChunk:endChunk], table, tableName, funcMap, format); err != nil {
+	for sqlLimit < len(rows) {
+		if err := insertBulk(ctx, db, rows[0:sqlLimit:sqlLimit], table, tableName, funcMap, format); err != nil {
 			return err
 		}
-		startChunk = endChunk
-		endChunk += sqlLimit
+		rows = rows[sqlLimit:]
 	}
-	return nil
+
+	return insertBulk(ctx, db, rows, table, tableName, funcMap, format)
 }
 
 func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, funcMap map[string]reflect.Value, format sqrl.PlaceholderFormat) error {
-
 	inst := BuildInsertStatement(table, tableName, format)
-
 	for _, row := range rows {
 		data, err := CalculateValuesOfRow(row, table, funcMap)
 		if err != nil {
@@ -54,17 +39,12 @@ func insertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]in
 	}
 
 	_, err = db.ExecContext(ctx, query, args...)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // CalculateValuesOfRow ...
 func CalculateValuesOfRow(row map[string]interface{}, table Table, funcMap map[string]reflect.Value) ([]interface{}, error) {
 	data := make([]interface{}, 0, len(row))
-
 	for _, key := range table.Ordered {
 		col := table.Keys[key]
 		rv := row[col.Value]
