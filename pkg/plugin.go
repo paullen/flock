@@ -2,38 +2,30 @@ package flock
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"plugin"
 )
 
 // PluginHandler ...
 func PluginHandler(content []byte) (map[string]interface{}, error) {
+	tmp := os.TempDir()
 
-	// Create plugin directory if it does not exist
-	if _, err := os.Stat("./plugin"); os.IsNotExist(err) {
-		// Modify permissions according to need
-		if err := os.Mkdir("./plugin", 0777); err != nil {
-			return nil, err
-		}
-	}
-
-	// Write the byte stream to a file
-	file, err := os.Create("./plugin/current.go")
-	if err != nil {
+	gof := filepath.Join(tmp, "tmp.go")
+	if err := ioutil.WriteFile(gof, content, 0666); err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
-	file.Write(content)
-
+	sof := filepath.Join(tmp, "tmp.so")
 	// Compile the file as a plugin
-	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o", "./plugin/current.so", "./plugin/current.go")
+	cmd := exec.Command("go", "build", "-buildmode=plugin", "-o", sof, gof)
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
-	p, err := plugin.Open("plugin/current.so")
+	p, err := plugin.Open(sof)
 	if err != nil {
 		return nil, err
 	}

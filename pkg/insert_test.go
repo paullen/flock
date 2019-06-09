@@ -10,11 +10,6 @@ import (
 )
 
 func TestInsertBulk(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Errorf("Error in creating SQL mock")
-	}
-	defer db.Close()
 
 	columns := map[string]flock.Column{"First": {"one", []flock.Func{}}, "Second": {"two", []flock.Func{}}, "Third": {"three", []flock.Func{}}}
 
@@ -42,6 +37,12 @@ func TestInsertBulk(t *testing.T) {
 
 	for _, v := range tests {
 		t.Run(v.name, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			if err != nil {
+				t.Errorf("Error in creating SQL mock")
+			}
+			defer db.Close()
+
 			t.Logf(v.name)
 			mock.ExpectBegin()
 			tx, err := db.Begin()
@@ -70,9 +71,11 @@ func TestInsertBulk(t *testing.T) {
 			if err := flock.InsertBulk(context.Background(), tx, rows, table, "Random", sqrl.Dollar); err != nil {
 				t.Errorf("Couldn't insert data: %v", err)
 			}
+
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("Unfulfilled Expectations")
+			}
 		})
 	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Unfulfilled Expectations")
-	}
+
 }
