@@ -13,7 +13,7 @@ var sqlLimit = 1000
 // InsertBulk ...
 func InsertBulk(ctx context.Context, db sqrl.ExecerContext, rows []map[string]interface{}, table Table, tableName string, format sqrl.PlaceholderFormat) error {
 	for sqlLimit < len(rows) {
-		if err := insertBulk(ctx, db, rows[0:sqlLimit:sqlLimit], table, tableName, funcMap, format); err != nil {
+		if err := insertBulk(ctx, db, rows[0:sqlLimit], table, tableName, funcMap, format); err != nil {
 			return err
 		}
 		rows = rows[sqlLimit:]
@@ -107,7 +107,7 @@ func SetLimit(in int) error {
 	return nil
 }
 
-// GetLimit ...
-func GetLimit() int {
+// Limit ...
+func Limit() int {
 	return sqlLimit
 }

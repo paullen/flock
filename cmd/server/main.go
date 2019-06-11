@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -53,6 +54,7 @@ func main() {
 	}
 	defer lis.Close()
 
+	fmt.Println("Running server...")
 	if err := s.Serve(lis); err != nil {
 		log.Fatal(err)
 	}
