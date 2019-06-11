@@ -42,6 +42,7 @@ require (
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/vault/api v1.0.2 // indirect
 	github.com/hashicorp/vault/sdk v0.1.11 // indirect
+	github.com/improbable-eng/grpc-web v0.9.6
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
@@ -58,6 +59,7 @@ require (
 	github.com/posener/complete v1.2.1 // indirect
 	github.com/prometheus/client_golang v0.9.4 // indirect
 	github.com/rogpeppe/fastuuid v1.1.0 // indirect
+	github.com/rs/cors v1.6.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect

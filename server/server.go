@@ -196,15 +196,19 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			}
 			switch batch := v.Batch.Value.(type) {
 			case *pb.Batch_Head:
-				var tempChannel = make(chan *pb.DataStream, batch.Head.Chunks)
+				var tempChannel = make(chan *pb.DataStream)
 
 				chunkMap.Store(batch.Head.BatchId, tempChannel)
 
 				// Passing channel to ease access from locks and nextRequest to not store it
 				go func(channel chan *pb.DataStream, nextRequest *pb.BatchInsertHead, inerror *errorHandle) {
-					var receivedChunks = make([]*pb.DataStream, 0)
+					receivedChunks := make([]*pb.DataStream, 0)
 					for v := range channel {
 						receivedChunks = append(receivedChunks, v)
+						if int64(len(receivedChunks)) == nextRequest.Chunks {
+							close(channel)
+							chunkMap.Delete(nextRequest.BatchId)
+						}
 					}
 					sort.SliceStable(receivedChunks, func(i, j int) bool {
 						return receivedChunks[i].Index < receivedChunks[j].Index
@@ -240,16 +244,15 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 				}
 				value.(chan *pb.DataStream) <- batch.Chunk
 			case *pb.Batch_Tail:
-				value, ok := chunkMap.Load(batch.Tail.BatchId)
-				if !ok {
-					s.Logger.Error("unidentified stream. Please send BatchInserHead before beginning a stream")
-					return errors.New("stream not found")
-				}
+				// _, ok := chunkMap.Load(batch.Tail.BatchId)
+				// if !ok {
+				// 	s.Logger.Error("unidentified stream. Please send BatchInserHead before beginning a stream")
+				// 	return errors.New("stream not found")
+				// }
 
-				// TODO : Close channel when all chunks are delivered
-				close(value.(chan *pb.DataStream))
+				// close(value.(chan *pb.DataStream))
 
-				chunkMap.Delete(batch.Tail.BatchId)
+				// chunkMap.Delete(batch.Tail.BatchId)
 
 			default:
 				s.Logger.Error("might be a version mis match unknown message type received", zap.String("type", fmt.Sprintf("%T", v.Batch.Value)))

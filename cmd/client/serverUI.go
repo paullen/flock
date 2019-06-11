@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"net"
 	"fmt"
+	"net/http"
 
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/rs/cors"
 	pb "github.com/srikrsna/flock/cmd/client/protos"
 	flockSQL "github.com/srikrsna/flock/sql"
 	"go.uber.org/zap"
@@ -35,7 +37,7 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 			s.Logger.Error("Failed to ping server", zap.String("error", err.Error()))
 			return nil, err
 		}
-		return &pb.PingResponse{}, nil
+		return &pb.PingResponse{Schema: []byte("Land le le")}, nil
 	case *pb.PingRequest_ClientDB:
 		db, err := flockSQL.ConnectDB(v.ClientDB.Url, v.ClientDB.Database)
 		if err != nil {
@@ -116,14 +118,18 @@ func runUIServer() error {
 	s := grpc.NewServer()
 	pb.RegisterUIServer(s, srv)
 
-	lis, err := net.Listen("tcp", ":50052")
-	if err != nil {
-		return err
-	}
-	defer lis.Close()
+	ws := grpcweb.WrapServer(s, grpcweb.WithOriginFunc(func(string) bool { return true }))
 
-	if err := s.Serve(lis); err != nil {
-		return err
-	}
-	return nil
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if ws.IsGrpcWebRequest(r) {
+			ws.HandleGrpcWebRequest(w, r)
+			return
+		}
+
+		fmt.Println("not a grpcweb request")
+	})
+
+	fmt.Println("Server Running...")
+	err = http.ListenAndServe(":8080", cors.AllowAll().Handler(http.DefaultServeMux))
+	return err
 }

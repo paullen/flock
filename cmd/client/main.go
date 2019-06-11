@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -51,7 +52,7 @@ func main() {
 	// }
 
 	if err := runUIServer(); err != nil {
-		fmt.Printf("UI server terminated: %v", err)
+		fmt.Printf("UI server terminated: %v\n", err)
 	}
 
 }
@@ -119,27 +120,24 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 			return err
 		}
 		records[v.Name] = len(data)
-		startRow := 0
-		rowChunks := len(data) / rowLimit
-		if len(data)%rowLimit > 0 {
-			rowChunks++
-		}
+		i := 0
 		// Iterating over all row chunks
-		for i := 0; i < rowChunks; i++ {
-			lenRow := rowLimit
-			if startRow+lenRow > len(data) {
-				lenRow = len(data) - startRow
-			}
+		for len(data) > 0 {
 			var buf bytes.Buffer
-			if err := gob.NewEncoder(&buf).Encode(data[startRow:(startRow + lenRow)]); err != nil {
+			var tempData []map[string]interface{}
+			if rowLimit <= len(data) {
+				tempData = data[0:rowLimit]
+				data = data[rowLimit:]
+			} else {
+				tempData = data
+				data = data[len(data):]
+			}
+
+			if err := gob.NewEncoder(&buf).Encode(tempData); err != nil {
 				return err
 			}
 			complete := buf.Bytes()
-			startChunk := 0
-			chunks := int64(len(complete) / gobLimit)
-			if len(complete)%gobLimit > 0 {
-				chunks++
-			}
+			chunks := int64(math.Ceil(float64(len(complete)) / float64(gobLimit)))
 
 			// Generate UUID for the row chunk
 			batchID := uuid.New()
@@ -160,12 +158,16 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 			}); err != nil {
 				return err
 			}
-
+			index := int64(1)
 			// Sending chunks of data stream
-			for i := int64(0); i < chunks; i++ {
-				lenChunk := gobLimit
-				if startChunk+lenChunk >= len(complete) {
-					lenChunk = len(complete) - startChunk
+			for len(complete) > 0 {
+				var tempComplete []byte
+				if gobLimit <= len(complete) {
+					tempComplete = complete[0:gobLimit]
+					complete = complete[gobLimit:]
+				} else {
+					tempComplete = complete
+					complete = complete[len(complete):]
 				}
 
 				if err := fcli.Send(&pb.FlockRequest{
@@ -174,8 +176,8 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 							Value: &pb.Batch_Chunk{
 								Chunk: &pb.DataStream{
 									BatchId: batchID.String(),
-									Index:   i,
-									Data:    complete[startChunk:(startChunk + lenChunk)],
+									Index:   index,
+									Data:    tempComplete,
 								},
 							},
 						},
@@ -183,7 +185,7 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 				}); err != nil {
 					return err
 				}
-				startChunk += lenChunk
+				index++
 			}
 
 			// Sending the tail of a data stream
@@ -207,8 +209,8 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 			log.Println(time.Since(start))
 			log.Println(res)
 			//Update the UI server of the progress
+			i++
 			ch <- progress{i + 1, t + 1, (float64(t+1) / float64(numTables))}
-			startRow += lenRow
 		}
 	}
 	var buf bytes.Buffer
