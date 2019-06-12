@@ -37,7 +37,7 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 			s.Logger.Error("Failed to ping server", zap.String("error", err.Error()))
 			return nil, err
 		}
-		return &pb.PingResponse{Schema: []byte("Land le le")}, nil
+		return &pb.PingResponse{}, nil
 	case *pb.PingRequest_ClientDB:
 		db, err := flockSQL.ConnectDB(v.ClientDB.Url, v.ClientDB.Database)
 		if err != nil {

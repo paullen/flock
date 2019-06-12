@@ -27,7 +27,7 @@ type progress struct {
 	percentage float64
 }
 
-var gobLimit = 60000 // Gob data limit in bytes
+var gobLimit = 60000 // Data limit in bytes to accomodate for the gRPC data transfer limit
 var rowLimit = 100   // Number of rows that will be sent at a time
 
 var records = make(map[string]int)
