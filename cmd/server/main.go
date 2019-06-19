@@ -71,9 +71,9 @@ func makeServer() (*server.Server, error) {
 	// 	RawQuery: fmt.Sprintf("sslmode=%s&connect_timeout=%d", "disable", 3),
 	// }
 
-	flock.RegisterFunc(flock.FuncMap{
-		"Nil": Nil,
-	})
+	// flock.RegisterFunc(flock.FuncMap{
+	// 	"Nil": Nil,
+	// })
 
 	log, err := zap.NewDevelopment()
 	if err != nil {
