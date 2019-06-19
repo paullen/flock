@@ -16,7 +16,6 @@ import (
 	pb "github.com/srikrsna/flock/protos"
 	flockSQL "github.com/srikrsna/flock/sql"
 	"go.uber.org/zap"
-	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob" // Presuming this is the GCS blob driver
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -64,15 +63,20 @@ func (s *Server) Health(ctx context.Context, in *pb.Ping) (*pb.Pong, error) {
 func (s *Server) DatabaseHealth(ctx context.Context, in *pb.DBPing) (*pb.DBPong, error) {
 	db, err := flockSQL.ConnectDB(in.Url, in.Database)
 	if err != nil {
+		s.Logger.Error("failed to connect to database", zap.String("error", err.Error()))
 		return nil, err
 	}
 	defer db.Close()
 
 	info, err := flockSQL.GetSchema(ctx, db)
 	if err != nil {
+		s.Logger.Error("failed to generate base flock", zap.String("error", err.Error()))
 		return nil, err
 	}
 
+	// info := make(map[string][]string)
+	// info["USER"] = []string{"ID", "FIRST_NAME", "LAST_NAME"}
+	// info["RAJPUT"] = []string{"LODU", "LAND"}
 	base, err := generateBase(info)
 	if err != nil {
 		s.Logger.Error("failed to generate base", zap.String("error", err.Error()))
@@ -105,7 +109,6 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			s.Logger.Error("failed to connect to database", zap.String("error", err.Error()))
 			return err
 		}
-
 		fl, err := flock.ParseSchema(bytes.NewBuffer(v.Start.Schema))
 		if err != nil {
 			s.Logger.Error("failed to build tables", zap.String("error", err.Error()))
@@ -123,29 +126,29 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 		flock.RegisterFunc(plugins)
 
 		// TODO : Fill URL
-		url := ""
+		// url := ""
 
-		b, err := blob.OpenBucket(ch.Context(), url)
-		if err != nil {
-			s.Logger.Error("failed to open bucket for url", zap.String("url", url), zap.String("error", err.Error()))
-			return err
-		}
+		// b, err := blob.OpenBucket(ch.Context(), url)
+		// if err != nil {
+		// 	s.Logger.Error("failed to open bucket for url", zap.String("url", url), zap.String("error", err.Error()))
+		// 	return err
+		// }
 
-		for name := range plugins {
-			wr, err := b.NewWriter(ch.Context(), name, nil)
-			if err != nil {
-				s.Logger.Error("failed to create a writer to the blob", zap.String("key", name), zap.String("error", err.Error()))
-				return err
-			}
-			if _, err := wr.Write(v.Start.Plugin); err != nil {
-				s.Logger.Error("failed to write to blob", zap.String("key", name), zap.String("error", err.Error()))
-				return err
-			}
-			if err := wr.Close(); err != nil {
-				s.Logger.Error("failed to write to blob", zap.String("key", name), zap.String("error", err.Error()))
-				return err
-			}
-		}
+		// for name := range plugins {
+		// 	wr, err := b.NewWriter(ch.Context(), name, nil)
+		// 	if err != nil {
+		// 		s.Logger.Error("failed to create a writer to the blob", zap.String("key", name), zap.String("error", err.Error()))
+		// 		return err
+		// 	}
+		// 	if _, err := wr.Write(v.Start.Plugin); err != nil {
+		// 		s.Logger.Error("failed to write to blob", zap.String("key", name), zap.String("error", err.Error()))
+		// 		return err
+		// 	}
+		// 	if err := wr.Close(); err != nil {
+		// 		s.Logger.Error("failed to write to blob", zap.String("key", name), zap.String("error", err.Error()))
+		// 		return err
+		// 	}
+		// }
 
 		if v.Start.Dollar == true {
 			p = sqrl.Dollar
@@ -153,7 +156,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			p = sqrl.Question
 		}
 
-		if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Pong{}}); err != nil {
+		if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Pong{Pong: &pb.Pong{}}}); err != nil {
 			s.Logger.Error("failed to send start response", zap.String("error", err.Error()))
 			return err
 		}
@@ -220,16 +223,16 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 
 					res, err := handleBatch(ch.Context(), tx, tables, nextRequest, data, p)
 					if err != nil {
-						inerror.lock.Lock()
 						s.Logger.Error("unable to handle batch insert request", zap.String("error", err.Error()))
+						inerror.lock.Lock()
 						inerror.err = err
 						inerror.lock.Unlock()
 						return
 					}
-					s.Logger.Info("successfully inserted chunk in table %v, batch", zap.String("table", nextRequest.TableName), zap.String("batch", nextRequest.BatchId))
+					s.Logger.Info("successfully inserted chunk", zap.String("table", nextRequest.TableName), zap.String("batch", nextRequest.BatchId))
 					if err := ch.Send(&pb.FlockResponse{Value: &pb.FlockResponse_Batch{Batch: res}}); err != nil {
-						inerror.lock.Lock()
 						s.Logger.Error("unable to send batch insert response", zap.String("error", err.Error()))
+						inerror.lock.Lock()
 						inerror.err = err
 						inerror.lock.Unlock()
 						return
@@ -282,8 +285,8 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			return status.Errorf(codes.Unimplemented, "must be version mismatch unknown message type: %T", next.Value)
 		}
 
-		if err := s.Logger.Sync(); err != nil {
-			return fmt.Errorf("Failed to sync log: %v", err)
-		}
+		// if err := s.Logger.Sync(); err != nil {
+		// 	return fmt.Errorf("Failed to sync log: %v", err)
+		// }
 	}
 }

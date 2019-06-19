@@ -30,7 +30,7 @@ type Server struct {
 
 // Ping ...
 func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
-	defer s.Logger.Sync()
+	// defer s.Logger.Sync()
 	switch v := req.Value.(type) {
 	case *pb.PingRequest_Server:
 		if err := pingServer(ctx, v.Server.Ip); err != nil {
@@ -61,7 +61,7 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 
 // SchemaTest ...
 func (s *Server) SchemaTest(ctx context.Context, req *pb.SchemaFile) (*pb.SchemaResponse, error) {
-	defer s.Logger.Sync()
+	// defer s.Logger.Sync()
 	params, err := testSchema(req.File)
 	if err != nil {
 		s.Logger.Error("failed to parse schema", zap.String("error", err.Error()))
@@ -72,7 +72,7 @@ func (s *Server) SchemaTest(ctx context.Context, req *pb.SchemaFile) (*pb.Schema
 
 // Plugin ...
 func (s *Server) Plugin(ctx context.Context, req *pb.PluginRequest) (*pb.PluginResponse, error) {
-	defer s.Logger.Sync()
+	// defer s.Logger.Sync()
 	if err := testPlugin(req.Plugin); err != nil {
 		s.Logger.Error("plugin test failed", zap.String("error", err.Error()))
 		return nil, err
@@ -82,7 +82,7 @@ func (s *Server) Plugin(ctx context.Context, req *pb.PluginRequest) (*pb.PluginR
 
 // Report ...
 func (s *Server) Report(req *pb.ReportRequest, srv pb.UI_ReportServer) error {
-	defer s.Logger.Sync()
+	// defer s.Logger.Sync()
 	progChan := make(chan progress)
 
 	// Unpack the params from json to a map
@@ -91,17 +91,20 @@ func (s *Server) Report(req *pb.ReportRequest, srv pb.UI_ReportServer) error {
 		s.Logger.Error("failed to parse params", zap.String("error", err.Error()))
 		return err
 	}
+	go func() {
+		for v := range progChan {
+			if err := srv.Send(&pb.ReportResponse{Chunks: int64(v.chunks), Tables: int64(v.tables), Percentage: int64(v.percentage * 100)}); err != nil {
+				s.Logger.Error("unable to send progress report to UI", zap.String("error", err.Error()))
+				return
+			}
+		}
+	}()
 
 	if err := runFlockClient(req.Server.Ip, req.ClientDB.Url, req.ClientDB.Database, req.ServerDB.Url, req.ServerDB.Database, req.Dollar, req.Flock, req.Plugin, params, progChan); err != nil {
 		s.Logger.Error("failed to transfer data", zap.String("error", err.Error()))
 		return err
 	}
-	for v := range progChan {
-		if err := srv.Send(&pb.ReportResponse{Chunks: int64(v.chunks), Tables: int64(v.tables), Percentage: int64(v.percentage * 100)}); err != nil {
-			s.Logger.Error("unable to send progress report to UI", zap.String("error", err.Error()))
-			return err
-		}
-	}
+
 	return nil
 }
 

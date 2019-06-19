@@ -59,7 +59,7 @@ func main() {
 
 // Functions implementing the relay functionality between the UI and the server
 
-func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, dollar bool, plugin, schema []byte, params map[string]interface{}, ch chan progress) error {
+func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, dollar bool, schema, plugin []byte, params map[string]interface{}, ch chan progress) error {
 
 	// Connect to flock server
 	conn, err := grpc.Dial(serverIP, grpc.WithInsecure())
