@@ -43,7 +43,7 @@ func generateBase(info map[string]([]string)) ([]byte, error) {
 			return nil, err
 		}
 		for _, v := range v {
-			if _, err := buf.WriteString(fmt.Sprintf("\t\t%s = \n", v)); err != nil {
+			if _, err := buf.WriteString(fmt.Sprintf("\t\t- %s = \n", v)); err != nil {
 				return nil, err
 			}
 		}
