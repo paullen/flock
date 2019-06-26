@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
@@ -25,6 +24,8 @@ type progress struct {
 	chunks     int
 	tables     int
 	percentage float64
+	execTime time.Duration
+	res interface{}
 }
 
 var gobLimit = 60000 // Data limit in bytes to accomodate for the gRPC data transfer limit
@@ -206,11 +207,9 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 				return err
 			}
 
-			log.Println(time.Since(start))
-			log.Println(res)
 			//Update the UI server of the progress
 			i++
-			ch <- progress{i + 1, t + 1, (float64(t+1) / float64(numTables))}
+			ch <- progress{i + 1, t + 1, (float64(t+1) / float64(numTables)), time.Since(start), res}
 		}
 	}
 	var buf bytes.Buffer
@@ -220,11 +219,10 @@ func runFlockClient(serverIP, clientURL, clientDB, serverURL, serverDB string, d
 	if err = fcli.Send(&pb.FlockRequest{Value: &pb.FlockRequest_End{End: &pb.EndStream{Records: buf.Bytes()}}}); err != nil {
 		return err
 	}
-	res, err := fcli.Recv()
+	_, err = fcli.Recv()
 	if err != nil {
 		return err
 	}
-	log.Println(res)
 	return nil
 }
 

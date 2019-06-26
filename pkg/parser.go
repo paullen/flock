@@ -17,38 +17,41 @@ type Entry struct {
 }
 
 type Field struct {
-	Key       string       `(@Ident "="`
+	Key       string       `("-"@Ident "="`
 	Value     string       `@Ident`
 	Functions []*FieldFunc `@@* )`
 }
 
 type FieldFunc struct {
 	Name       string           `( "|" @Ident`
-	Parameters []*FuncParameter ` @@* )`
+	Parameters []*FuncParameter ` @@*)`
 }
 
 type FuncParameter struct {
-	String *string  `( @(String | RawString)`
+	Key    *string  `( @Ident`
+	String *string  `| @(String | RawString)`
 	Int    *int64   `| @Int`
 	Float  *float64 `| @Float`
 	Char   *rune    `| @Char`
 	Bool   *bool    `| @("true" | "false") )`
 }
 
-func (f FuncParameter) Value() interface{} {
+func (f FuncParameter) Value() (interface{}, bool) {
 	switch {
+	case f.Key != nil:
+		return *f.Key, true
 	case f.String != nil:
-		return *f.String
+		return *f.String, false
 	case f.Int != nil:
-		return *f.Int
+		return *f.Int, false
 	case f.Float != nil:
-		return *f.Float
+		return *f.Float, false
 	case f.Char != nil:
-		return *f.Char
+		return *f.Char, false
 	case f.Bool != nil:
-		return *f.Bool
+		return *f.Bool, false
 	default:
-		return nil
+		return nil, false
 	}
 }
 
