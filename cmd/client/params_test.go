@@ -17,7 +17,7 @@ func TestParseQuery(t *testing.T) {
 
 	fl, err := flock.ParseSchema(f)
 	if err != nil {
-		t.Fatalf("unable to parse schema file")
+		t.Fatalf("unable to parse schema file: %v", err)
 	}
 	query, args := parseQuery(fl.Entries[0].Query, params)
 	t.Logf(query)

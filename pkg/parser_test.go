@@ -47,7 +47,8 @@ func TestParseSchema(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseSchema() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
+			v, ok := fl.Entries[0].Fields[0].Functions[0].Parameters[0].Value()
+			t.Logf("***************** %v -- %v", v, ok)
 			if *replace || *replacef {
 				f, err := os.Create(outPath + tt.name)
 				if err != nil {

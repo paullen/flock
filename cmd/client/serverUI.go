@@ -97,6 +97,7 @@ func (s *Server) Report(req *pb.ReportRequest, srv pb.UI_ReportServer) error {
 				s.Logger.Error("unable to send progress report to UI", zap.String("error", err.Error()))
 				return
 			}
+			s.Logger.Info("Progress Update", zap.Duration("time", v.execTime), zap.Any("status", v.res))
 		}
 	}()
 

@@ -1,8 +1,8 @@
 Random {
     `SELECT * FROM RandomSource WHERE First= @first, Third = @third`
     {
-        First = first | toGuid "usr"
-        Second = two | Nil 2
-        Third = three | Decrypt "oldkey" | Encrypt "newkey"
+       - First = first | toGuid "kascet"
+       - Second = two | Nil ko
+       - Third = three | Decrypt "oldkey" | Encrypt "newkey"
     }
 }

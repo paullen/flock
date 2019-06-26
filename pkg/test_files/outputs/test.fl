@@ -12,7 +12,7 @@
 							Name: "toGuid",
 							Parameters: []*flock.FuncParameter{
 								&flock.FuncParameter{
-									String: &"usr",
+									String: &"kascet",
 								},
 							},
 						},
@@ -26,7 +26,7 @@
 							Name: "Nil",
 							Parameters: []*flock.FuncParameter{
 								&flock.FuncParameter{
-									Int: &2,
+									Key: &"ko",
 								},
 							},
 						},

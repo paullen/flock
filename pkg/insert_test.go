@@ -68,7 +68,7 @@ func TestInsertBulk(t *testing.T) {
 				mock.ExpectExec("INSERT INTO ").WillReturnResult(sqlmock.NewResult(1, 1))
 			}
 
-			if err := flock.InsertBulk(context.Background(), tx, rows, table, "Random", sqrl.Dollar); err != nil {
+			if err := flock.InsertBulk(context.Background(), tx, rows, table, "Random", sqrl.Dollar, nil); err != nil {
 				t.Errorf("Couldn't insert data: %v", err)
 			}
 

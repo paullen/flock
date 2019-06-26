@@ -43,7 +43,7 @@ func TestBuildTables(t *testing.T) {
 				t.Errorf("ParseSchema() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			tables := flock.BuildTables(fl)
+			tables, _ := flock.BuildTables(fl)
 
 			if *replace || *replacet {
 				f, err := os.Create(outPath + tt.tableName)

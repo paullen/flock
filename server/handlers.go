@@ -12,7 +12,7 @@ import (
 	pb "github.com/srikrsna/flock/protos"
 )
 
-func handleBatch(ctx context.Context, db sqrl.ExecerContext, tables map[string]flock.Table, req *pb.BatchInsertHead, data []byte, format sqrl.PlaceholderFormat) (*pb.BatchInsertResponse, error) {
+func handleBatch(ctx context.Context, db sqrl.ExecerContext, tables map[string]flock.Table, req *pb.BatchInsertHead, data []byte, format sqrl.PlaceholderFormat, params map[string]map[string]flock.Variable) (*pb.BatchInsertResponse, error) {
 	var rows []map[string]interface{}
 
 	if err := gob.NewDecoder(bytes.NewReader(data)).Decode(&rows); err != nil {
@@ -23,8 +23,11 @@ func handleBatch(ctx context.Context, db sqrl.ExecerContext, tables map[string]f
 	if !ok {
 		return nil, errors.New("table not configured")
 	}
-
-	if err := flock.InsertBulk(ctx, db, rows, table, req.GetTableName(), format); err != nil {
+	var varFields map[string]flock.Variable
+	if _, ok := params[req.GetTableName()]; ok {
+		varFields = params[req.GetTableName()]
+	}
+	if err := flock.InsertBulk(ctx, db, rows, table, req.GetTableName(), format, varFields); err != nil {
 		return nil, fmt.Errorf("failed to insert chunk. Table: %s\nData: %v\nError: %v", req.GetTableName(), rows, err)
 	}
 

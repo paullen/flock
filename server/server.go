@@ -93,6 +93,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 	var db DB
 	var p sqrl.PlaceholderFormat
 	var tables map[string]flock.Table
+	var params map[string]map[string]flock.Variable
 
 	if err := ch.RecvMsg(&next); err != nil {
 		return err
@@ -115,7 +116,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 			return err
 		}
 
-		tables = flock.BuildTables(fl)
+		tables, params = flock.BuildTables(fl)
 
 		plugins, err := flock.PluginHandler(v.Start.Plugin)
 		if err != nil {
@@ -221,7 +222,7 @@ func (s *Server) Flock(ch pb.Flock_FlockServer) error {
 						data = append(data, v.GetData()...)
 					}
 
-					res, err := handleBatch(ch.Context(), tx, tables, nextRequest, data, p)
+					res, err := handleBatch(ch.Context(), tx, tables, nextRequest, data, p, params)
 					if err != nil {
 						s.Logger.Error("unable to handle batch insert request", zap.String("error", err.Error()))
 						inerror.lock.Lock()
