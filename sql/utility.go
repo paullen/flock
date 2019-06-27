@@ -66,8 +66,7 @@ func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 
 	// TODO : Generalize table query
 
-	tableQuery := `SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = 'public';`
-
+	tableQuery := `SELECT CONCAT(schemaname, '.', tablename) as TABLE_NAME FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';`
 	t, err := db.Query(tableQuery)
 	if err != nil {
 		return nil, err
@@ -91,24 +90,28 @@ func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 
 		// TODO : Generalize column query
 
-		columnQuery := `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '` + name + `';`
+		columnQuery := `SELECT * FROM ` + name + ` LIMIT 0;`
 
 		cols, err := db.Query(columnQuery)
 		if err != nil {
 			return nil, err
 		}
 
-		columns := make([]string, 0)
-
-		for cols.Next() {
-			var column string
-
-			if err := cols.Scan(&column); err != nil {
-				return nil, err
-			}
-
-			columns = append(columns, column)
+		columns, err := cols.Columns()
+		if err != nil {
+			return nil, err
 		}
+// 		columns := make([]string, 0)
+
+// 		for cols.Next() {
+// 			var column string
+
+// 			if err := cols.Scan(&column); err != nil {
+// 				return nil, err
+// 			}
+
+// 			columns = append(columns, column)
+// 		}
 
 		res[name] = columns
 	}
