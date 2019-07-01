@@ -134,6 +134,6 @@ func runUIServer() error {
 	})
 
 	fmt.Println("Server Running...")
-	err = http.ListenAndServe(":8080", cors.AllowAll().Handler(http.DefaultServeMux))
+	err = http.ListenAndServe(":8082", cors.AllowAll().Handler(http.DefaultServeMux))
 	return err
 }
