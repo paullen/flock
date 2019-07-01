@@ -94,24 +94,16 @@ func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 
 		cols, err := db.Query(columnQuery)
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		columns, err := cols.Columns()
 		if err != nil {
 			return nil, err
 		}
-// 		columns := make([]string, 0)
-
-// 		for cols.Next() {
-// 			var column string
-
-// 			if err := cols.Scan(&column); err != nil {
-// 				return nil, err
-// 			}
-
-// 			columns = append(columns, column)
-// 		}
+		if err := cols.Close(); err != nil {
+			return nil, err
+		}
 
 		res[name] = columns
 	}
