@@ -74,9 +74,6 @@ func (s *Server) DatabaseHealth(ctx context.Context, in *pb.DBPing) (*pb.DBPong,
 		return nil, err
 	}
 
-	// info := make(map[string][]string)
-	// info["USER"] = []string{"ID", "FIRST_NAME", "LAST_NAME"}
-	// info["RAJPUT"] = []string{"LODU", "LAND"}
 	base, err := generateBase(info)
 	if err != nil {
 		s.Logger.Error("failed to generate base", zap.String("error", err.Error()))
