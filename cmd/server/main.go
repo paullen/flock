@@ -48,7 +48,7 @@ func main() {
 	s := grpc.NewServer()
 	pb.RegisterFlockServer(s, srv)
 
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		log.Fatal(err)
 	}
