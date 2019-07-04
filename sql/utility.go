@@ -22,15 +22,18 @@ func ConnectDB(u string, databaseSrv string) (*sql.DB, error) {
 
 //GetData  - Returns select query results
 func GetData(ctx context.Context, db *sql.DB, query string, args []interface{}) ([]map[string]interface{}, error) {
-	rows, err := db.Query(query, args...)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	cols, _ := rows.ColumnTypes()
+	cols, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
 
-	res := []map[string]interface{}{}
+	res := make([]map[string]interface{}, 0, 10)
 
 	for rows.Next() {
 		columns := make([]interface{}, len(cols))
@@ -67,10 +70,11 @@ func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 	// TODO : Generalize table query
 
 	tableQuery := `SELECT CONCAT(schemaname, '.', tablename) as TABLE_NAME FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';`
-	t, err := db.Query(tableQuery)
+	t, err := db.QueryContext(ctx, tableQuery)
 	if err != nil {
 		return nil, err
 	}
+	defer t.Close()
 
 	tables := make([]string, 0)
 
@@ -90,18 +94,20 @@ func GetSchema(ctx context.Context, db *sql.DB) (map[string][]string, error) {
 
 		// TODO : Generalize column query
 
-		columnQuery := `SELECT * FROM ` + name + ` LIMIT 0;`
+		columnQuery := `SELECT * FROM ` + name + ` WHERE 1 = 0;`
 
-		cols, err := db.Query(columnQuery)
+		cols, err := db.QueryContext(ctx, columnQuery)
 		if err != nil {
 			continue
 		}
 
 		columns, err := cols.Columns()
-		if err != nil {
-			return nil, err
+
+		if er := cols.Close(); er != nil {
+			return nil, er
 		}
-		if err := cols.Close(); err != nil {
+
+		if err != nil {
 			return nil, err
 		}
 
